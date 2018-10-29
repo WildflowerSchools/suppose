@@ -54,9 +54,8 @@ def pose_to_array(pose):
                 part = (0, 0, 0)
             parts.append(part)
         all_humans.append(np.array(parts, dtype=np.float32))
-    pose_converted = np.array(all_humans, dtype=np.float32)
-    #import ipdb;ipdb.set_trace()
 
+    pose_converted = np.array(all_humans, dtype=np.float32)
     return pose_converted
 
 
@@ -64,7 +63,6 @@ def pose_to_array(pose):
 def tfpose_to_pandas(poses):
     all_poses = [pose_to_array(pose) for pose in poses]
     df = pd.DataFrame(all_poses, columns=["poses"])
-    import ipdb;ipdb.set_trace()
     return df
 
 
@@ -72,30 +70,22 @@ def tfpose_to_pandas(poses):
 def extract_poses(video, e, model_name, write_output=True):
     log.info("Processing {}".format(video))
     cap = cv2.VideoCapture(video)
+    video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     count = 0
     poses = []
     time0 = time.time()
     if cap.isOpened() is False:
         raise IOError("Error reading file {}".format(video))
 
+    pbar = tqdm(total=video_length)
     while cap.isOpened():
         ret_val, image = cap.read()
         if not ret_val:
             break
         count += 1
-
-        #image_resized = cv2.resize(image, (w, h))
-
         humans = e.inference(image, resize_to_default=True, upsample_size=4.0)
         poses.append(humans)
-        #image2 = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
-
-        #cv2.putText(image, "FPS: %f" % (1.0 / (time.time() - fps_time)), (10, 10),  cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        #cv2.imshow('tf-pose-estimation result', image)
-        #cv2.imwrite("tmp/out_{0:07d}.jpg".format(count), image2)
-        #time1 = time.time()
-        #if cv2.waitKey(1) == 27:
-        #    break
+        pbar.update(1)
     time1 = time.time()
     log.info("{} fps".format((count / (time1 - time0))))
     log.info("{} s".format(time1 - time0))
@@ -112,10 +102,8 @@ def extract_poses(video, e, model_name, write_output=True):
         df_poses.to_pickle(df_poses_pickle_filename, compression="xz")
         df_poses.to_json(df_poses_json_filename, compression="xz")
 
-
-
     cap.release()
-    #cv2.destroyAllWindows()
+    pbar.close()
 
 
 def _run(videos, model, resolution, write_output, display_progress):
