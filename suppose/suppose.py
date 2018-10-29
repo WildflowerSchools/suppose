@@ -4,7 +4,6 @@ import time
 import os
 import cv2
 from functools import wraps
-import click
 from tqdm import tqdm
 from tf_pose.estimator import TfPoseEstimator
 from tf_pose.networks import get_graph_path, model_wh
@@ -13,17 +12,13 @@ import numpy as np
 import pandas as pd
 
 
-log_handler = RotatingFileHandler('extract_poses.log')
+log_handler = RotatingFileHandler('suppose.log')
 log_handler.push_application()
 log = Logger('poser')
 
 
 MAX_NUM_BODY_PARTS = 18
 
-
-@click.group()
-def cli():
-    pass
 
 def timing(f):
     @wraps(f)
@@ -63,8 +58,6 @@ def pose_to_array(pose):
     #import ipdb;ipdb.set_trace()
 
     return pose_converted
-
-
 
 
 @timing
@@ -124,14 +117,8 @@ def extract_poses(video, e, model_name, write_output=True):
     cap.release()
     #cv2.destroyAllWindows()
 
-@cli.command()
-@click.option("--videos", required=True, show_default=True, help="path to video file; will accept python glob syntax to process multiple files")
-@click.option("--model", default="cmu", show_default=True, help="feature extractor; cmu or mobilenet_thin")
-@click.option("--resolution", default="432x368", show_default=True, help="network input resolution")
-@click.option("--write-output/--no-write-output", default=True, show_default=True, help="Write poses to file")
-@click.option("--display-progress/--no-display-progress", default=True, show_default=True, help="Show progress bar")
-@timing
-def run(videos, model, resolution, write_output, display_progress):
+
+def _run(videos, model, resolution, write_output, display_progress):
     log.info("Starting Pose Extractor")
     log.info("videos: {}".format(videos))
     log.info("model: {}".format(model))
@@ -154,7 +141,3 @@ def run(videos, model, resolution, write_output, display_progress):
             extract_poses(f, e, model, write_output)
 
     log.info("Done!")
-
-
-if __name__ == '__main__':
-    cli()

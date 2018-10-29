@@ -1,0 +1,22 @@
+#/usr/bin/env python
+import click
+from suppose.suppose import timing, _run
+
+
+@click.group()
+def cli():
+    pass
+
+@cli.command()
+@click.option("--videos", required=True, show_default=True, help="path to video file; will accept python glob syntax to process multiple files")
+@click.option("--model", default="cmu", show_default=True, help="feature extractor; cmu or mobilenet_thin")
+@click.option("--resolution", default="432x368", show_default=True, help="network input resolution")
+@click.option("--write-output/--no-write-output", default=True, show_default=True, help="Write poses to file")
+@click.option("--display-progress/--no-display-progress", default=True, show_default=True, help="Show progress bar")
+@timing
+def run(videos, model, resolution, write_output, display_progress):
+    _run(videos, model, resolution, write_output, display_progress)
+
+
+if __name__ == '__main__':
+    cli()
