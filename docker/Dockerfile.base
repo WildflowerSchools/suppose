@@ -1,0 +1,20 @@
+FROM nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04
+
+MAINTAINER lue.her@gmail.com
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        wget \
+        bzip2 \
+        && \
+    rm -rf /var/lib/apt/lists/*
+
+ARG MINICONDA_FILE=Miniconda3-latest-Linux-x86_64.sh
+ARG ANACONDA_PATH=/opt/conda
+
+RUN wget https://repo.continuum.io/miniconda/${MINICONDA_FILE} && \
+    /bin/sh ${MINICONDA_FILE} -b -p ${ANACONDA_PATH} && \
+    rm ${MINICONDA_FILE}
+
+ENV PATH ${ANACONDA_PATH}/bin:$PATH
+
+RUN conda install -y python=3.6 cudatoolkit=9.0 tensorflow-gpu
