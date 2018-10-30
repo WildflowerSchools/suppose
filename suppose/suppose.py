@@ -61,8 +61,8 @@ def pose_to_array(pose):
 
 @timing
 def tfpose_to_pandas(poses):
-    all_poses = [pose_to_array(pose) for pose in poses]
-    df = pd.DataFrame(all_poses, columns=["poses"])
+    all_poses = { idx: {"poses": pose_to_array(pose)} for idx, pose in enumerate(poses)}
+    df = pd.DataFrame.from_dict(all_poses, orient="index")
     return df
 
 
