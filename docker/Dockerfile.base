@@ -3,6 +3,7 @@ FROM nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04
 MAINTAINER lue.her@gmail.com
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
         wget \
         bzip2 \
         && \
@@ -10,11 +11,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ARG MINICONDA_FILE=Miniconda3-latest-Linux-x86_64.sh
 ARG ANACONDA_PATH=/opt/conda
+ENV PATH ${ANACONDA_PATH}/bin:$PATH
 
 RUN wget https://repo.continuum.io/miniconda/${MINICONDA_FILE} && \
     /bin/sh ${MINICONDA_FILE} -b -p ${ANACONDA_PATH} && \
-    rm ${MINICONDA_FILE}
+    rm ${MINICONDA_FILE} && \
+    ${ANACONDA_PATH}/bin/conda install -y python=3.6 cudatoolkit=9.0 tensorflow-gpu click pandas tqdm numpy opencv && \
+    ${ANACONDA_PATH}/bin/conda clean --all -y && \
+    pip install --no-cache-dir logbook 
 
-ENV PATH ${ANACONDA_PATH}/bin:$PATH
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
 
-RUN conda install -y python=3.6 cudatoolkit=9.0 tensorflow-gpu
+
