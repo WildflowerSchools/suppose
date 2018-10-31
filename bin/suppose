@@ -1,6 +1,6 @@
 #/usr/bin/env python
 import click
-from suppose.suppose import timing, _run
+from suppose.pose2d import extract as _extract
 
 
 @click.group()
@@ -13,9 +13,19 @@ def cli():
 @click.option("--resolution", default="432x368", show_default=True, help="network input resolution")
 @click.option("--write-output/--no-write-output", default=True, show_default=True, help="Write poses to file")
 @click.option("--display-progress/--no-display-progress", default=True, show_default=True, help="Show progress bar")
-@timing
-def run(videos, model, resolution, write_output, display_progress):
-    _run(videos, model, resolution, write_output, display_progress)
+def extract(videos, model, resolution, write_output, display_progress):
+    """
+    Extract human poses in videos.
+    """
+    _extract(videos, model, resolution, write_output, display_progress)
+
+
+@cli.command()
+def reconstruct(path):
+    """
+    Find 3d reconstructed poses from 2d poses from mulitple camera views.
+    """
+    pass
 
 
 if __name__ == '__main__':

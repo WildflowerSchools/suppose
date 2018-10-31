@@ -3,43 +3,23 @@ import glob
 import time
 import os
 import cv2
-from functools import wraps
 from tqdm import tqdm
 from tf_pose.estimator import TfPoseEstimator
 from tf_pose.networks import get_graph_path, model_wh
 from logbook import Logger, RotatingFileHandler
 import numpy as np
 import pandas as pd
+from .common import timing
 
 
 log_handler = RotatingFileHandler('suppose.log')
 log_handler.push_application()
-log = Logger('poser')
+log = Logger('pose2d')
 
 
 MAX_NUM_BODY_PARTS = 18
 
 
-def timing(f):
-    @wraps(f)
-    def _timing(*args, **kwargs):
-        t0 = time.time()
-        try:
-            return f(*args, **kwargs)
-        finally:
-            t1 = time.time()
-            dt = t1 - t0
-            argnames = f.__code__.co_varnames[:f.__code__.co_argcount]
-            fname = f.__name__
-            named_positional_args = list(zip(argnames, args[:len(argnames)]))
-            extra_args = [("args", list(args[len(argnames):]))]
-            keyword_args = [("kwargs", kwargs)]
-            arg_info = named_positional_args + extra_args + keyword_args
-            msg = "{}({}) took {:.3f} seconds".format(fname,
-                                                       ', '.join('{}={}'.format(entry[0], entry[1]) for entry in arg_info),
-                                                       dt)
-            log.info(msg)
-    return _timing
 
 def pose_to_array(pose):
     all_humans = []
@@ -105,8 +85,8 @@ def extract_poses(video, e, model_name, write_output=True):
     cap.release()
     pbar.close()
 
-
-def _run(videos, model, resolution, write_output, display_progress):
+@timing
+def extract(videos, model, resolution, write_output, display_progress):
     log.info("Starting Pose Extractor")
     log.info("videos: {}".format(videos))
     log.info("model: {}".format(model))
