@@ -87,7 +87,7 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
         df_poses_json_filename = '{}__poses_df-{}.json.xz'.format(video, model_name)
         df_poses = tfpose_to_pandas(poses)
         df_poses.index = timestamps
-        df_poses['file'] = video
+        df_poses['file'] = os.path.basename(video)
         df_poses['model'] = model_name
         df_poses['frame'] = frame_numbers
         for column in ('file', 'model'):
