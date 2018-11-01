@@ -86,7 +86,9 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
         df_poses_json_filename = '{}__poses_df-{}.json.xz'.format(video, model_name)
         df_poses = tfpose_to_pandas(poses)
         df_poses.index = timestamps
+        log.info("Writing to: {}".format(df_poses_pickle_filename))
         df_poses.to_pickle(df_poses_pickle_filename, compression="xz")
+        log.info("Writing to: {}".format(df_poses_json_filename))
         df_poses.to_json(df_poses_json_filename, compression="xz")
 
     cap.release()
@@ -105,6 +107,7 @@ def extract(videos, model, resolution, write_output, display_progress, file_date
 
     files = glob.glob(videos)
     files.sort()
+    log.info("Files to process: {}".format(files))
     length = len(files)
     log.info("Processing {} files".format(length))
     disable_tqdm = not display_progress
@@ -123,5 +126,25 @@ def extract(videos, model, resolution, write_output, display_progress, file_date
     log.info("Done!")
 
 @timing
-def combine(files):
-    pass
+def combine(files_glob, output_filename):
+    log.info("Combine serialized Pandas dataframes")
+    log.info("files_glob: {}".format(files_glob))
+    log.info("output_filename: {}".format(output_filename))
+    files = glob.glob(files_glob)
+    files.sort()
+    log.info("Files to process: {}".format(files))
+    dfs = []
+    for f in files:
+        log.info("Reading file: {}".format(f))
+        df = pd.read_pickle(f)
+        dfs.append(df)
+    ef = pd.concat(dfs, copy=False)
+    ef = ef[~ef.index.duplicated(keep='last')]
+    ef.sort_index(inplace=True)
+    output_pickle_filename = '{}.pickle.xz'.format(output_filename)
+    otput_json_filename = '{}.json.xz'.format(output_filename)
+    log.info("Writing to: {}".format(output_pickle_filename))
+    ef.to_pickle(output_pickle_filename, compression="xz")
+    log.info("Writing to: {}".format(otput_json_filename))
+    ef.to_json(otput_json_filename, compression="xz")
+
