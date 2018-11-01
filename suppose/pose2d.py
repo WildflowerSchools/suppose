@@ -9,6 +9,7 @@ from tf_pose.networks import get_graph_path, model_wh
 from logbook import Logger, RotatingFileHandler
 import numpy as np
 import pandas as pd
+from datetime import datetime, timedelta
 from .common import timing
 
 
@@ -46,9 +47,15 @@ def tfpose_to_pandas(poses):
     return df
 
 
+def parse_datetime(a, format):
+    return datetime.strptime(a, format)
+
+
 @timing
-def extract_poses(video, e, model_name, write_output=True):
+def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
     log.info("Processing {}".format(video))
+    if datetime_start is None:
+        datetime_start = datetime.fromtimestamp(0)
     cap = cv2.VideoCapture(video)
     video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     count = 0
@@ -57,11 +64,15 @@ def extract_poses(video, e, model_name, write_output=True):
     if cap.isOpened() is False:
         raise IOError("Error reading file {}".format(video))
 
+    timestamps = []
     pbar = tqdm(total=video_length)
     while cap.isOpened():
+        offset = cap.get(cv2.CAP_PROP_POS_MSEC)
         ret_val, image = cap.read()
         if not ret_val:
             break
+        timestamp = datetime_start + timedelta(milliseconds=int(offset))
+        timestamps.append(timestamp)
         count += 1
         humans = e.inference(image, resize_to_default=True, upsample_size=4.0)
         poses.append(humans)
@@ -79,6 +90,7 @@ def extract_poses(video, e, model_name, write_output=True):
         df_poses_pickle_filename = '{}__poses_df-{}.pickle.xz'.format(video, model_name)
         df_poses_json_filename = '{}__poses_df-{}.json.xz'.format(video, model_name)
         df_poses = tfpose_to_pandas(poses)
+        df_poses.index = timestamps
         df_poses.to_pickle(df_poses_pickle_filename, compression="xz")
         df_poses.to_json(df_poses_json_filename, compression="xz")
 
@@ -86,7 +98,7 @@ def extract_poses(video, e, model_name, write_output=True):
     pbar.close()
 
 @timing
-def extract(videos, model, resolution, write_output, display_progress):
+def extract(videos, model, resolution, write_output, display_progress, file_datetime_format):
     log.info("Starting Pose Extractor")
     log.info("videos: {}".format(videos))
     log.info("model: {}".format(model))
@@ -106,6 +118,15 @@ def extract(videos, model, resolution, write_output, display_progress):
             display_filename = os.path.join(*f.rsplit("/", maxsplit=4)[-2:])
             log.info("File {} / {} - {}".format(idx+1, length, f))
             tqdm_files.set_description(display_filename)
-            extract_poses(f, e, model, write_output)
+            # get timestamp of first frame of video via filename
+            if file_datetime_format != "":
+                datetime_start = parse_datetime(os.path.basename(f), file_datetime_format)
+            else:
+                datetime_start = None
+            extract_poses(f, e, model, write_output, datetime_start)
 
     log.info("Done!")
+
+@timing
+def combine(files):
+    pass

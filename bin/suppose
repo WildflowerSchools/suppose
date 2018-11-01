@@ -13,11 +13,12 @@ def cli():
 @click.option("--resolution", default="432x368", show_default=True, help="network input resolution")
 @click.option("--write-output/--no-write-output", default=True, show_default=True, help="Write poses to file")
 @click.option("--display-progress/--no-display-progress", default=True, show_default=True, help="Show progress bar")
-def extract(videos, model, resolution, write_output, display_progress):
+@click.option("--file-datetime-format", default="video_%Y-%m-%d-%H-%M-%S.mp4", show_default=True, help="strptime formatter to extract datetime from filename")
+def extract(videos, model, resolution, write_output, display_progress, file_datetime_format):
     """
     Extract human poses in videos.
     """
-    _extract(videos, model, resolution, write_output, display_progress)
+    _extract(videos, model, resolution, write_output, display_progress, file_datetime_format)
 
 
 @cli.command()
