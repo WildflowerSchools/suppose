@@ -1,6 +1,6 @@
 #/usr/bin/env python
 import click
-from suppose.pose2d import extract as _extract, combine as _combine
+from suppose.pose2d import extract as _extract, combine as _combine, bundle_multiview as __bundle_multiview
 
 
 @click.group()
@@ -26,6 +26,17 @@ def extract(videos, model, resolution, write_output, display_progress, file_date
 @click.option("--output-filename", required=True, help="output filename prefix")
 def combine(files, output_filename):
     _combine(files, output_filename)
+
+
+@cli.command()
+@click.option('--camera-poses', '-cp', multiple=True, required=True, help="camera pose files to bundle")
+@click.option('--output', required=True, help="output filename")
+def bundle(camera_poses, output):
+    cps = []
+    for cp in camera_poses:
+        name, file = cp.split(",")
+        cps.append(dict(name=name, file=file))
+    __bundle_multiview(cps, output)
 
 
 @cli.command()

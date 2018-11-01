@@ -21,7 +21,6 @@ log = Logger('pose2d')
 MAX_NUM_BODY_PARTS = 18
 
 
-
 def pose_to_array(pose):
     all_humans = []
     for human in pose:
@@ -65,6 +64,7 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
         raise IOError("Error reading file {}".format(video))
 
     timestamps = []
+    frame_numbers = []
     pbar = tqdm(total=video_length)
     while cap.isOpened():
         offset = cap.get(cv2.CAP_PROP_POS_MSEC)
@@ -73,6 +73,7 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
             break
         timestamp = datetime_start + timedelta(milliseconds=int(offset))
         timestamps.append(timestamp)
+        frame_numbers.append(count)
         count += 1
         humans = e.inference(image, resize_to_default=True, upsample_size=4.0)
         poses.append(humans)
@@ -86,6 +87,12 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
         df_poses_json_filename = '{}__poses_df-{}.json.xz'.format(video, model_name)
         df_poses = tfpose_to_pandas(poses)
         df_poses.index = timestamps
+        df_poses['file'] = video
+        df_poses['model'] = model_name
+        df_poses['frame'] = frame_numbers
+        for column in ('file', 'model'):
+            df_poses[column] = df_poses[column].astype('category')
+
         log.info("Writing to: {}".format(df_poses_pickle_filename))
         df_poses.to_pickle(df_poses_pickle_filename, compression="xz")
         log.info("Writing to: {}".format(df_poses_json_filename))
@@ -93,6 +100,7 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
 
     cap.release()
     pbar.close()
+
 
 @timing
 def extract(videos, model, resolution, write_output, display_progress, file_datetime_format):
@@ -125,6 +133,7 @@ def extract(videos, model, resolution, write_output, display_progress, file_date
 
     log.info("Done!")
 
+
 @timing
 def combine(files_glob, output_filename):
     log.info("Combine serialized Pandas dataframes")
@@ -141,10 +150,29 @@ def combine(files_glob, output_filename):
     ef = pd.concat(dfs, copy=False)
     ef = ef[~ef.index.duplicated(keep='last')]
     ef.sort_index(inplace=True)
+    for column in ('file', 'model'):
+        ef[column] = ef[column].astype('category')
     output_pickle_filename = '{}.pickle.xz'.format(output_filename)
-    otput_json_filename = '{}.json.xz'.format(output_filename)
+    output_json_filename = '{}.json.xz'.format(output_filename)
     log.info("Writing to: {}".format(output_pickle_filename))
     ef.to_pickle(output_pickle_filename, compression="xz")
-    log.info("Writing to: {}".format(otput_json_filename))
-    ef.to_json(otput_json_filename, compression="xz")
+    log.info("Writing to: {}".format(output_json_filename))
+    ef.to_json(output_json_filename, compression="xz")
 
+
+@timing
+def bundle_multiview(camera_poses, output):
+    log.info("Bundling multiple camera views together into single file")
+    data = {}
+    for cp in camera_poses:
+        name = cp['name']
+        file = cp['file']
+        log.info("{} - {}".format(name, file))
+        data[name] = pd.read_pickle(file)
+    df = pd.concat(data.values(), axis=1, keys=data.keys())
+    output_pickle_filename = '{}.pickle.xz'.format(output)
+    output_json_filename = '{}.json.xz'.format(output)
+    log.info("Writing to: {}".format(output_pickle_filename))
+    df.to_pickle(output_pickle_filename, compression="xz")
+    log.info("Writing to: {}".format(output_json_filename))
+    df.to_json(output_json_filename, compression="xz")
