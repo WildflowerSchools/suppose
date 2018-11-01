@@ -82,11 +82,6 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
     log.info("{} s".format(time1 - time0))
 
     if write_output:
-        output_filename = '{}__poses-{}.pickle'.format(video, model_name)
-        log.info("Writing output to {}".format(output_filename))
-        with open(output_filename, 'wb') as fd:
-            pickle.dump(poses, fd)
-
         df_poses_pickle_filename = '{}__poses_df-{}.pickle.xz'.format(video, model_name)
         df_poses_json_filename = '{}__poses_df-{}.json.xz'.format(video, model_name)
         df_poses = tfpose_to_pandas(poses)
