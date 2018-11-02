@@ -6,22 +6,20 @@ import cv2
 from tqdm import tqdm
 from tf_pose.estimator import TfPoseEstimator
 from tf_pose.networks import get_graph_path, model_wh
-from logbook import Logger, RotatingFileHandler
+from logbook import Logger
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 from .common import timing
 
 
-log_handler = RotatingFileHandler('suppose.log')
-log_handler.push_application()
 log = Logger('pose2d')
 
 
 MAX_NUM_BODY_PARTS = 18
 
 
-def pose_to_array(pose):
+def pose_to_array(pose, frame_width, frame_height):
     all_humans = []
     for human in pose:
         body_parts = human.body_parts
@@ -29,7 +27,7 @@ def pose_to_array(pose):
         for idx in range(MAX_NUM_BODY_PARTS):
             try:
                 body_part = body_parts[idx]
-                part = (body_part.x, body_part.y, body_part.score)
+                part = (body_part.x * frame_width, body_part.y * frame_height, body_part.score)
             except KeyError:
                 part = (0, 0, 0)
             parts.append(part)
@@ -40,8 +38,8 @@ def pose_to_array(pose):
 
 
 @timing
-def tfpose_to_pandas(poses):
-    all_poses = { idx: {"poses": pose_to_array(pose)} for idx, pose in enumerate(poses)}
+def tfpose_to_pandas(poses, frame_width, frame_height):
+    all_poses = { idx: {"poses": pose_to_array(pose, frame_width, frame_height)} for idx, pose in enumerate(poses)}
     df = pd.DataFrame.from_dict(all_poses, orient="index")
     return df
 
@@ -57,6 +55,8 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
         datetime_start = datetime.fromtimestamp(0)
     cap = cv2.VideoCapture(video)
     video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     count = 0
     poses = []
     time0 = time.time()
@@ -85,7 +85,7 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
     if write_output:
         df_poses_pickle_filename = '{}__poses_df-{}.pickle.xz'.format(video, model_name)
         df_poses_json_filename = '{}__poses_df-{}.json.xz'.format(video, model_name)
-        df_poses = tfpose_to_pandas(poses)
+        df_poses = tfpose_to_pandas(poses, width, height)
         df_poses.index = timestamps
         df_poses['file'] = os.path.basename(video)
         df_poses['model'] = model_name

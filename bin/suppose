@@ -1,6 +1,11 @@
 #/usr/bin/env python
 import click
+from logbook import RotatingFileHandler
 from suppose.pose2d import extract as _extract, combine as _combine, bundle_multiview as __bundle_multiview
+from suppose.pose3d import reconstruct3d as _reconstruct3d
+
+log_handler = RotatingFileHandler('suppose.log')
+log_handler.push_application()
 
 
 @click.group()
@@ -40,11 +45,13 @@ def bundle(camera_poses, output):
 
 
 @cli.command()
-def reconstruct(path):
+@click.option('--file', required=True, help="input filename")
+@click.option('--camera-calibration', '-cc', multiple=True, required=True, help="camera calibration file")
+def reconstruct3d(file, camera_calibration):
     """
     Find 3d reconstructed poses from 2d poses from mulitple camera views.
     """
-    pass
+    _reconstruct3d(file, camera_calibration)
 
 
 if __name__ == '__main__':
