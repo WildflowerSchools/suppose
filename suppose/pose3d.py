@@ -1,25 +1,14 @@
-import argparse
-import time
-import pickle
-import glob
-from collections import defaultdict, OrderedDict
-import os
+from collections import defaultdict
 from math import *
-from itertools import cycle, product
+from itertools import  product
 from logbook import Logger
-from cvutilities.openpose_utilities import Pose2D, Pose3D, Poses2D, Poses3D
-from cvutilities.openpose_utilities import num_body_parts, body_part_connectors, body_part_long_names
-from cvutilities.camera_utilities import fetch_camera_calibration_data_from_local_drive_multiple_cameras
 import cv2
 import numpy as np
 import networkx as nx
-from palettable.cartocolors.qualitative import Pastel_10 as COLORS
+#from palettable.cartocolors.qualitative import Pastel_10 as COLORS
 from .common import timing
 from .camera import load_calibration
 
-
-#from tf_pose.estimator import TfPoseEstimator, Human, BodyPart
-#from tf_pose.networks import get_graph_path, model_wh
 
 import pandas as pd
 
