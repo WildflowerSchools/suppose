@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import networkx as nx
 import math
-#from networkx.algorithms import bipartite
+from tqdm import tqdm
 #from palettable.cartocolors.qualitative import Pastel_10 as COLORS
 from .common import timing
 from .camera import load_calibration
@@ -43,6 +43,8 @@ def undistort_points(pts, calibration):
     return undistorted_points
 
 def undistort_2d_poses(poses, camera_calibration):
+    if poses.size == 0:
+        return poses
     poses1 = poses[:, :, :2]
     scores1 = poses[:, :, 2]
     poses1_undistorted = undistort_points(poses1, camera_calibration)
@@ -50,12 +52,16 @@ def undistort_2d_poses(poses, camera_calibration):
     return p1
 
 def triangulate(p1, p2, projection_matrix1, projection_matrix2):
+    if p1.size == 0 or p2.size == 0:
+        return np.zeros((0, 3))
     object_points_homogeneous = cv2.triangulatePoints(projection_matrix1, projection_matrix2, p1.T, p2.T)
     object_points = cv2.convertPointsFromHomogeneous(object_points_homogeneous.T)
     object_points = object_points.reshape(-1, 3)
     return object_points
 
 def project_3d_to_2d(pts3d, camera_calibration):
+    if pts3d.size == 0:
+        return np.zeros((0, 2))
     return cv2.projectPoints(pts3d, camera_calibration['rotationVector'], camera_calibration['translationVector'], camera_calibration['cameraMatrix'], camera_calibration['distortionCoefficients'])[0].squeeze()
 
 def rmse(p1, p2):
@@ -85,12 +91,13 @@ def get_likely_matches(g, max_error):
 
     return gg.to_undirected(reciprocal=True)
 
-def get_best_matches(graph_likely):
+def get_best_matches(graph_likely, min_edges=1):
     graph_best = nx.Graph()
     best_edges = []
     for subgraph in nx.connected_component_subgraphs(graph_likely):
-        best_edge = sorted(subgraph.edges(data=True), key=lambda node: node[2]['weight'])[0]
-        best_edges.append(best_edge)
+        if subgraph.number_of_edges() >= min_edges:
+            best_edge = sorted(subgraph.edges(data=True), key=lambda node: node[2]['weight'])[0]
+            best_edges.append(best_edge)
     graph_best.add_edges_from(best_edges)
     return graph_best
 
@@ -107,12 +114,15 @@ def reconstruct3d(file, camera_calibration):
 
     df = pd.read_pickle(file)
     camera_names = sorted(list(cameras.keys()))
-
+    all_poses3d = []
+    pbar = tqdm(total=len(df))
     for frame_number, (index, row) in enumerate(df.iterrows()):
-        if frame_number < 1800:
-            continue
-        if frame_number > 1805:
-            break
+        #if frame_number < 1800:
+        #    continue
+        #if frame_number > 1900:
+        #    break
+        #if frame_number % 600 == 0:
+        #    print(frame_number)
         graph = nx.Graph()
         for camera1_idx, camera_name1 in enumerate(camera_names):
             camera_calibration1 = cameras[camera_name1]['calibration']
@@ -151,8 +161,7 @@ def reconstruct3d(file, camera_calibration):
                         "pts1": pp1,
                         "pts2": pp2
                     }
-                    #graph.add_node((camera1_idx, idx1))
-                    #graph.add_node((camera2_idx, idx2))
+
                     graph.add_edge(
                         (camera1_idx, idx1),
                         (camera2_idx, idx2),
@@ -160,13 +169,20 @@ def reconstruct3d(file, camera_calibration):
                         weight_inverse=-math.log(reprojection_error),
                         weight=reprojection_error
                     )
-        # get best edge
         graph_likely = get_likely_matches(graph, 15)
-        graph_best = get_best_matches(graph_likely)
-        import ipdb;ipdb.set_trace()
+        graph_best = get_best_matches(graph_likely, min_edges=1)
+        poses3d = []
+        for src, tgt, data in graph_best.edges(data=True):
+            poses3d.append(data['pose']['keypoints'])
+        all_poses3d.append(poses3d)
+        pbar.update(1)
+    pbar.close()
 
-
-    import ipdb;ipdb.set_trace()
+    all_poses = {idx: {"poses": poses} for idx, poses in enumerate(all_poses3d)}
+    df = pd.DataFrame.from_dict(all_poses, orient="index")
+    df.poses.to_json("poses3d-2-edge-min.json")
+    print("done!")
+    #import ipdb;ipdb.set_trace()
     #import matplotlib.pyplot as plt
     #nx.draw(graph, with_labels=True)
     #plt.show()
