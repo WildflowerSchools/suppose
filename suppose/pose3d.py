@@ -5,6 +5,8 @@ from logbook import Logger
 import cv2
 import numpy as np
 import networkx as nx
+import math
+#from networkx.algorithms import bipartite
 #from palettable.cartocolors.qualitative import Pastel_10 as COLORS
 from .common import timing
 from .camera import load_calibration
@@ -50,7 +52,7 @@ def undistort_2d_poses(poses, camera_calibration):
 def triangulate(p1, p2, projection_matrix1, projection_matrix2):
     object_points_homogeneous = cv2.triangulatePoints(projection_matrix1, projection_matrix2, p1.T, p2.T)
     object_points = cv2.convertPointsFromHomogeneous(object_points_homogeneous.T)
-    object_points = np.squeeze(object_points)
+    object_points = object_points.reshape(-1, 3)
     return object_points
 
 def project_3d_to_2d(pts3d, camera_calibration):
@@ -58,6 +60,39 @@ def project_3d_to_2d(pts3d, camera_calibration):
 
 def rmse(p1, p2):
     return np.linalg.norm(p1 - p2)/np.sqrt(p1.shape[0])
+
+def get_likely_matches(g, max_error):
+    gg = nx.DiGraph()
+
+    for node in g.nodes:
+        best_edges = {}    # target_camera -> best_edge
+        for edge in g.edges(node, data=True):
+            _, tgt, data = edge
+            if data['weight'] > max_error:
+                continue
+            # tgt[0] is camera the paired keypoints is located in
+            # alternatively, access data['pose']['camera2']
+            if tgt[0] in best_edges:
+                _, _, data2 = best_edges[tgt[0]]
+                if data['weight'] < data2['weight']:
+                    best_edges[tgt[0]] = edge
+            else:
+                best_edges[tgt[0]] = edge
+        gg.add_edges_from(best_edges.values())
+        #for best_edge in best_edges.values():
+            #gg.add_edges_from([best_edge])
+
+
+    return gg.to_undirected(reciprocal=True)
+
+def get_best_matches(graph_likely):
+    graph_best = nx.Graph()
+    best_edges = []
+    for subgraph in nx.connected_component_subgraphs(graph_likely):
+        best_edge = sorted(subgraph.edges(data=True), key=lambda node: node[2]['weight'])[0]
+        best_edges.append(best_edge)
+    graph_best.add_edges_from(best_edges)
+    return graph_best
 
 @timing
 def reconstruct3d(file, camera_calibration):
@@ -73,13 +108,12 @@ def reconstruct3d(file, camera_calibration):
     df = pd.read_pickle(file)
     camera_names = sorted(list(cameras.keys()))
 
-    graph = nx.Graph()
-
-    count = 0
-    for index, row in df.iterrows():
-        count += 1
-        if count > 10:
+    for frame_number, (index, row) in enumerate(df.iterrows()):
+        if frame_number < 1800:
+            continue
+        if frame_number > 1805:
             break
+        graph = nx.Graph()
         for camera1_idx, camera_name1 in enumerate(camera_names):
             camera_calibration1 = cameras[camera_name1]['calibration']
             pts1 = undistort_2d_poses(row[camera_name1].poses, camera_calibration1)
@@ -112,12 +146,25 @@ def reconstruct3d(file, camera_calibration):
                         "camera2": camera2_idx,
                         "pose1": idx1,
                         "pose2": idx2,
+                        "reprojection1": pp1_reprojected,
+                        "reprojection2": pp2_reprojected,
+                        "pts1": pp1,
+                        "pts2": pp2
                     }
+                    #graph.add_node((camera1_idx, idx1))
+                    #graph.add_node((camera2_idx, idx2))
                     graph.add_edge(
                         (camera1_idx, idx1),
                         (camera2_idx, idx2),
-                        pose=pose3d
+                        pose=pose3d,
+                        weight_inverse=-math.log(reprojection_error),
+                        weight=reprojection_error
                     )
+        # get best edge
+        graph_likely = get_likely_matches(graph, 15)
+        graph_best = get_best_matches(graph_likely)
+        import ipdb;ipdb.set_trace()
+
 
     import ipdb;ipdb.set_trace()
     #import matplotlib.pyplot as plt
