@@ -47,11 +47,13 @@ def bundle(camera_poses, output):
 @cli.command()
 @click.option('--file', required=True, help="input filename")
 @click.option('--camera-calibration', '-cc', multiple=True, required=True, help="camera calibration file")
-def reconstruct3d(file, camera_calibration):
+@click.option('--output', default="poses3d", show_default=True, help="output name prefix")
+@click.option('--debug-output', default=False, type=bool, show_default=True, help="enable verbose debug output")
+def reconstruct3d(file, camera_calibration, output, debug_output):
     """
     Find 3d reconstructed poses from 2d poses from mulitple camera views.
     """
-    _reconstruct3d(file, camera_calibration)
+    _reconstruct3d(file, camera_calibration, output, debug_output)
 
 
 if __name__ == '__main__':

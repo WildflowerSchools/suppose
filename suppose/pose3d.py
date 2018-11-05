@@ -102,7 +102,7 @@ def get_best_matches(graph_likely, min_edges=1):
     return graph_best
 
 @timing
-def reconstruct3d(file, camera_calibration):
+def reconstruct3d(file, camera_calibration, output, debug_output):
     log.info("3D Reconstruction from poses in multiple views")
     log.info("file: {}".format(file))
     log.info("calibration: {}".format(camera_calibration))
@@ -126,41 +126,59 @@ def reconstruct3d(file, camera_calibration):
         graph = nx.Graph()
         for camera1_idx, camera_name1 in enumerate(camera_names):
             camera_calibration1 = cameras[camera_name1]['calibration']
-            pts1 = undistort_2d_poses(row[camera_name1].poses, camera_calibration1)
+            poses1 = row[camera_name1].poses
+            pts1 = undistort_2d_poses(poses1, camera_calibration1)
             projection_matrix1 = cameras[camera_name1]['projection']
             for camera2_idx, camera_name2 in enumerate(camera_names):
                 if camera_name1 == camera_name2:
                     continue
                 camera_calibration2 = cameras[camera_name2]['calibration']
-                pts2 = undistort_2d_poses(row[camera_name2].poses, camera_calibration2)
+                poses2 = row[camera_name2].poses
+                pts2 = undistort_2d_poses(poses2, camera_calibration2)
                 projection_matrix2 = cameras[camera_name2]['projection']
-                for (idx1, p1), (idx2, p2) in product(enumerate(pts1), enumerate(pts2)):
+                for (idx1, (p1, p1_orig)), (idx2, (p2, p2_orig)) in product(enumerate(zip(pts1, poses1)), enumerate(zip(pts2, poses2))):
                     pts_present = np.logical_and(p1[:, 2], p2[:, 2])  # keypoints exist in both p1 and p2 if score != 0
                     pp1 = p1[pts_present][:, :2]    # drop score dimension
                     pp2 = p2[pts_present][:, :2]
+                    p1_orig_shared = p1_orig[pts_present][:, :2]
+                    p2_orig_shared = p2_orig[pts_present][:, :2]
                     pts3d = triangulate(pp1, pp2, projection_matrix1, projection_matrix2)
                     pp1_reprojected = project_3d_to_2d(pts3d, camera_calibration1)
                     pp2_reprojected = project_3d_to_2d(pts3d, camera_calibration2)
-                    pp1_rmse = rmse(pp1, pp1_reprojected)
-                    pp2_rmse = rmse(pp2, pp2_reprojected)
+                    pp1_rmse = rmse(p1_orig_shared, pp1_reprojected)
+                    pp2_rmse = rmse(p2_orig_shared, pp2_reprojected)
                     if np.isnan(pp1_rmse) or np.isnan(pp2_rmse):
                         reprojection_error = np.nan
                     else:
                         reprojection_error = max(pp1_rmse, pp2_rmse)
                     keypoints_3d = np.full([len(pts_present)]+list(pts3d.shape[1:]), np.nan)
                     keypoints_3d[pts_present] = pts3d
-                    pose3d = {
-                        "keypoints": keypoints_3d,
-                        "reprojection_error": reprojection_error,
-                        "camera1": camera1_idx,
-                        "camera2": camera2_idx,
-                        "pose1": idx1,
-                        "pose2": idx2,
-                        "reprojection1": pp1_reprojected,
-                        "reprojection2": pp2_reprojected,
-                        "pts1": pp1,
-                        "pts2": pp2
-                    }
+                    if debug_output:
+                        pose3d = {
+                            "keypoints_3d": keypoints_3d,
+                            "reprojection_error": reprojection_error,
+                            "camera1": camera1_idx,
+                            "camera2": camera2_idx,
+                            "pose1": idx1,
+                            "pose2": idx2,
+                            "pp1_reprojected": pp1_reprojected,
+                            "pp2_reprojected": pp2_reprojected,
+                            "pp1": pp1,
+                            "pp2": pp2,
+                            "pts1": pts1,
+                            "pts2": pts2,
+                            "p1": p1,
+                            "p2": p2,
+                        }
+                    else:
+                        pose3d = {
+                            "keypoints_3d": keypoints_3d,
+                            "reprojection_error": reprojection_error,
+                            "camera1": camera1_idx,
+                            "camera2": camera2_idx,
+                            "pose1": idx1,
+                            "pose2": idx2,
+                        }
 
                     graph.add_edge(
                         (camera1_idx, idx1),
@@ -169,18 +187,29 @@ def reconstruct3d(file, camera_calibration):
                         weight_inverse=-math.log(reprojection_error),
                         weight=reprojection_error
                     )
+                    ### DEBUG
+                    #if (1,2) == (camera1_idx, idx1) and (2,0) == (camera2_idx, idx2):
+                    #    import ipdb;ipdb.set_trace()
+                    ### END DEBUG
         graph_likely = get_likely_matches(graph, 15)
         graph_best = get_best_matches(graph_likely, min_edges=1)
         poses3d = []
         for src, tgt, data in graph_best.edges(data=True):
-            poses3d.append(data['pose']['keypoints'])
+            poses3d.append(data['pose'])#['keypoints_3d'])
         all_poses3d.append(poses3d)
         pbar.update(1)
+        #import ipdb;ipdb.set_trace()
     pbar.close()
 
-    all_poses = {idx: {"poses": poses} for idx, poses in enumerate(all_poses3d)}
+    if debug_output:
+        #import ipdb;ipdb.set_trace()
+        all_poses = {idx: {"poses": np.array([p['keypoints_3d'] for p in poses]), "debug": [{k: p[k] for k in p.keys() if k != "keypoints_3d"} for p in poses]} for idx, poses in enumerate(all_poses3d)}
+    else:
+        all_poses = {idx: {"poses": np.array([p['keypoints_3d'] for p in poses])} for idx, poses in enumerate(all_poses3d)}
+
     df = pd.DataFrame.from_dict(all_poses, orient="index")
-    df.poses.to_json("poses3d-2-edge-min.json")
+    df.poses.to_json("{}.json".format(output))
+    df.to_pickle("{}.pickle.xz".format(output), compression='xz')
     print("done!")
     #import ipdb;ipdb.set_trace()
     #import matplotlib.pyplot as plt
