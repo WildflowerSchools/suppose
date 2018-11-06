@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>Poser Viewer</title>
+
+    <!-- Babylon.js -->
+    <script src="https://code.jquery.com/pep/0.4.2/pep.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+    <script src="https://preview.babylonjs.com/cannon.js"></script>
+    <script src="https://preview.babylonjs.com/Oimo.js"></script>
+    <script src="https://preview.babylonjs.com/gltf_validator.js"></script>
+    <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+    <script src="https://preview.babylonjs.com/babylon.js"></script>
+    <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+    <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+    <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+    <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+    <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+    <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+
+    <style>
+        html, body {
+            /*overflow: hidden;*/
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #canvasContainer {
+            width: 1280px;
+            height: 800px;
+        }
+
+        #renderCanvas {
+            margin:0;
+            padding:0;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        #videoContainer {
+            width: 720;
+            height: 480;
+            position: absolute;
+            top: 0;
+            margin-left: 720px;
+            display: none;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+        }
+
+        video:last-of-type {
+            margin: 0 0 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvasContainer">
+        <canvas id="renderCanvas"></canvas>
+    </div>
+    <div id="videoContainer">
+        <video id="recorded" playsinline loop></video>
+    </div>
+
+    <div style="display: none;">
+        <button id="play" disabled>Play</button>
+        <button id="download" disabled>Download</button>
+    </div>
+
+
+    <script>
+    const num_body_parts = 18;
+    const body_part_long_names = [
+        "Nose",
+        "Neck",
+        "RShoulder",
+        "RElbow",
+        "RWrist",
+        "LShoulder",
+        "LElbow",
+        "LWrist",
+        "RHip",
+        "RKnee",
+        "RAnkle",
+        "LHip",
+        "LKnee",
+        "LAnkle",
+        "REye",
+        "LEye",
+        "REar",
+        "LEar"];
+    const body_part_connectors = [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 4],
+        [1, 5],
+        [5, 6],
+        [6, 7],
+        [1, 8],
+        [8, 9],
+        [9, 10],
+        [1, 11],
+        [11, 12],
+        [12, 13],
+        [0, 14],
+        [14, 16],
+        [0, 15],
+        [15, 17]];
+
+    const CocoColors = [[255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0], [170, 255, 0], [85, 255, 0], [0, 255, 0],
+              [0, 255, 85], [0, 255, 170], [0, 255, 255], [0, 170, 255], [0, 85, 255], [0, 0, 255], [85, 0, 255],
+              [170, 0, 255], [255, 0, 255], [255, 0, 170], [255, 0, 85]];
+
+    var canvas = document.getElementById("renderCanvas");
+    var global_context = null;
+    canvas.width = 1280;
+    canvas.height = 720;
+    var camera;
+    let recordedBlobs;
+    const playButton = document.querySelector('button#play');
+    const recordedVideo = document.querySelector('video#recorded');
+
+
+    playButton.addEventListener('click', () => {
+        const superBuffer = new Blob(recordedBlobs, {type: 'video/webm'});
+        recordedVideo.src = null;
+        recordedVideo.srcObject = null;
+        recordedVideo.src = window.URL.createObjectURL(superBuffer);
+        recordedVideo.controls = true;
+        recordedVideo.play();
+    });
+
+    let NUM_PEOPLE_MESHES = 10;
+    var people_meshes_available;
+    var people_meshes_used;
+    var bodypart_meshes_available;
+    var bodypart_meshes_used;
+    const KALMAN_STD_THRESHOLD = 1.0;
+
+
+
+    var drawPerson = function(scene, keypoints, parent, keypoint_mat, bodypart_mat) {
+        let pidx = 0;
+        for (let person of keypoints) {
+            let kpidx = 0;
+            for (let kp of person) {
+                if (kp[1] === null) {
+                    continue;
+                }
+                if(kp[3] > KALMAN_STD_THRESHOLD) {
+                    // below std kalman filter
+                    continue;
+                }
+                //let box = BABYLON.Mesh.CreateBox(`kp-${pidx}-${kpidx}`, 0.04, scene);
+              //let box = BABYLON.MeshBuilder.CreateSphere(`kp-${pidx}-${kpidx}`, {diameter: 0.05}, scene);
+                let box = people_meshes_available.pop();
+                if (box === undefined) {
+                    let id = people_meshes_used.length + 1;
+                    box = BABYLON.MeshBuilder.CreateSphere(`kp-${id}-${kpidx}`, {diameter: 0.05}, scene);
+                    box.material = keypoint_mat;
+                    box.parent = parent;
+                }
+                box.position.x = kp[1];
+                box.position.y = kp[2];
+                box.position.z = -kp[0];
+                //box.visibility = true;
+                box.setEnabled(true);
+                kpidx++;
+                people_meshes_used.push(box);
+            }
+            drawBodyParts(pidx, person, scene, parent, bodypart_mat);
+            pidx++;
+        }
+    };
+
+    var drawBodyParts = function(id, keypoints, scene, parent, mats) {
+        let bpidx = 0;
+        for (let body_part_connector of body_part_connectors) {
+            //console.log("body part: ", body_part_connector);
+            idx1 = body_part_connector[0];
+            idx2 = body_part_connector[1];
+            pt1 = keypoints[idx1];
+            pt2 = keypoints[idx2];
+            if (pt1[3] <= KALMAN_STD_THRESHOLD && pt2[3] <= KALMAN_STD_THRESHOLD && pt1[0] != null && pt2[0] != null) {
+                //console.log(pt1);
+                //console.log(pt2);
+
+                var part = bodypart_meshes_available.pop();
+
+                let path = [new BABYLON.Vector3(pt1[1], pt1[2], -pt1[0]),
+                    new BABYLON.Vector3(pt2[1], pt2[2], -pt2[0])];
+
+                if (part === undefined) {
+                    let _id = bodypart_meshes_used.length + 1;
+                    part = BABYLON.MeshBuilder.CreateTube(
+                        `bp-${_id}-${bpidx}`,
+                        //null,
+                        {
+                            path: path,
+                            radius: 0.01,
+                            updatable: true
+                        }
+                    );
+                    part.material = mats[bpidx];
+                    part.parent = parent;
+                } else {
+                    //part = BABYLON.MeshBuilder.CreateTube(null, path, 0.01, null, null, null, null, null, part);
+                    //part = BABYLON.MeshBuilder.CreateTube(null, {path: path, radius: 0.01, instance: part}, scene);
+                    //part = BABYLON.Mesh.CreateTube(null, path, 0.01, null, null, null, null, null, null, part);
+
+                    part = BABYLON.MeshBuilder.CreateTube(part.id, {path: path, radius: 0.01, instance: part}, scene);
+
+                    part.material = mats[bpidx];
+
+                }
+
+                part.setEnabled(true);
+                bodypart_meshes_used.push(part);
+            }
+            bpidx++;
+        }
+    };
+
+    function* cycle(iterable){
+        while (true) {
+            yield* iterable;
+        }
+    }
+
+    var renderFrame = function(context) {
+        let {scene, keypoints_iterable, parent, keypoint_mat, bodypart_mats} = context;
+        // FRAME SKIP!
+        if (false) {
+            keypoints_iterable.next();
+            keypoints_iterable.next();
+            keypoints_iterable.next();
+            keypoints_iterable.next();
+            //keypoints_iterable.next();
+            //keypoints_iterable.next();
+            //keypoints_iterable.next();
+            //keypoints_iterable.next();
+            //keypoints_iterable.next();
+        }
+        let [frame_index, keypoints] = keypoints_iterable.next().value;
+
+
+        for(var mesh of people_meshes_used) {
+            mesh.setEnabled(false);
+        }
+        for(var mesh of bodypart_meshes_used) {
+            mesh.setEnabled(false);
+        }
+
+        people_meshes_available.push(...people_meshes_used);
+        people_meshes_used = [];
+
+        bodypart_meshes_available.push(...bodypart_meshes_used);
+        bodypart_meshes_used = [];
+        drawPerson(scene, keypoints, parent, keypoint_mat, bodypart_mats);
+        context['last_frame'] = frame_index;
+    };
+
+
+    var gameLoop = function(context) {
+
+        let { state } = context;
+
+        state.isPlaying = state.nextIsPlaying;
+
+        if (state.isPlaying) {
+            renderFrame(context);
+            //console.log(scene.meshes.length);
+            //console.log(parent.getChildren().length);
+            //console.log("---");
+        }
+        window.setTimeout(gameLoop, 100, context)
+    };
+
+
+    var createScene = function () {
+        var scene = new BABYLON.Scene(engine);
+        var keypoint_mat = new BABYLON.StandardMaterial(scene);
+        keypoint_mat.alpha = 1;
+        keypoint_mat.diffuseColor = new BABYLON.Color3(0.0, 1.0, 0.3);
+        //let bodypart_mat = new BABYLON.StandardMaterial(scene);
+        //bodypart_mat.alpha = 1;
+        //bodypart_mat.diffuseColor = new BABYLON.Color3(0.8, 0.3, 0.3);
+
+        let bodypart_mats = [];
+        for (let c of CocoColors) {
+          let mat = new BABYLON.StandardMaterial(scene);
+          mat.alpha = 1;
+          mat.diffuseColor = new BABYLON.Color3(c[0]/255.0, c[1]/255.0, c[2]/255.0);
+          mat.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+          bodypart_mats.push(mat);
+        }
+        console.log(bodypart_mats);
+
+        // Setup a simple environment
+        /*var light0 = new BABYLON.PointLight("Omni", new BABYLON.Vector3(0, 2, 8), scene);
+        var box1 = BABYLON.Mesh.CreateBox("b1", 1.0, scene);
+        var box2 = BABYLON.Mesh.CreateBox("b2", 1.0, scene);
+        box2.position.x = -3;
+        var box3 = BABYLON.Mesh.CreateBox("b3", 1.0, scene);
+        box3.position.x = 3;*/
+        const None = null;
+
+
+        let dummy = BABYLON.Mesh.CreateBox("dummy-parent", 0.0, scene);
+        dummy.isVisible = false;
+
+        //let keypoints_cycle = cycle(Object.values(keypoints_sequence));
+
+        //let context = {scene, keypoints_iterable: keypoints_cycle, parent: dummy, keypoint_mat, bodypart_mat};
+        let context = {scene, parent: dummy, keypoint_mat, bodypart_mats, state: {isPlaying: false, nextIsPlaying: false}};
+
+
+        // Add a camera to the scene and attach it to the canvas
+        camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, 6, BABYLON.Vector3.Zero(), scene);
+        //camera.setPosition(new BABYLON.Vector3(0, 5, 7));
+        //camera.setTarget(new BABYLON.Vector3(3, 1, -3));
+        camera.setTarget(new BABYLON.Vector3(4, 1, -3.5));
+        camera.useAutoRotationBehavior = true;
+        //camera.idleRotationWaitTime = 0;
+        //Attach a camera to the scene and the canvas
+        //camera = new BABYLON.FreeCamera("FreeCamera", new BABYLON.Vector3(0, 0, 5), scene);
+        //camera.rotation = new BABYLON.Vector3(0, Math.PI, 0);
+        camera.angularSensibility = 10;
+        camera.speed = 0.1;
+        
+        camera.keysUp.push("W".charCodeAt(0));
+        camera.keysDown.push("S".charCodeAt(0));
+        camera.keysLeft.push("A".charCodeAt(0));
+        camera.keysRight.push("D".charCodeAt(0));
+       
+
+        scene.activeCamera = camera;
+        camera.attachControl(canvas, true);
+        // Add and manipulate meshes in the scene
+
+        // Add lights to the scene
+        var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 5, 0), scene);
+        var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 5, -1), scene);
+        light1.intensity = 0.9
+        light2.intensity = 0.6;
+
+        var mat2 = new BABYLON.StandardMaterial(scene);
+        mat2.alpha = 1;
+        mat2.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7);
+        mat2.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+
+        var precision = {
+            "w" : 2,
+            "h" : 2
+        };
+        var subdivisions = {
+            'h' : 20,
+            'w' : 20
+        };
+        var xmin = -5;
+        var zmin = -15;
+        var xmax = 15;
+        var zmax = 5;
+        var whiteMaterial = new BABYLON.StandardMaterial("White", scene);
+        whiteMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7);
+        whiteMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+ 
+        var blackMaterial = new BABYLON.StandardMaterial("Black", scene);
+        blackMaterial.diffuseColor = new BABYLON.Color3(0.6, 0.6, 0.6);
+        blackMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+
+
+        var multimat = new BABYLON.MultiMaterial("multi", scene);
+        multimat.subMaterials.push(whiteMaterial);
+        multimat.subMaterials.push(blackMaterial);
+
+        var tiledGround = BABYLON.MeshBuilder.CreateTiledGround("ground", {xmin, xmax, zmin, zmax, subdivisions, precision}, scene);
+        tiledGround.material = multimat;
+
+        // Needed variables to set subMeshes
+        var verticesCount = tiledGround.getTotalVertices();
+        var tileIndicesLength = tiledGround.getIndices().length / (subdivisions.w * subdivisions.h);
+        
+        // Set subMeshes of the tiled ground
+        tiledGround.subMeshes = [];
+        var base = 0;
+        for (var row = 0; row < subdivisions.h; row++) {
+            for (var col = 0; col < subdivisions.w; col++) {
+                tiledGround.subMeshes.push(new BABYLON.SubMesh(row%2 ^ col%2, 0, verticesCount, base , tileIndicesLength, tiledGround));
+                base += tileIndicesLength;
+            }
+        }
+
+        // create meshes
+        people_meshes_available = [];
+        people_meshes_used = [];
+        bodypart_meshes_available = [];
+        bodypart_meshes_used = [];
+        for (let pidx = 0; pidx < NUM_PEOPLE_MESHES; pidx++) {
+            for (let kpidx = 0; kpidx < num_body_parts ; kpidx++) {
+                let box = BABYLON.MeshBuilder.CreateSphere(`kp-${pidx}-${kpidx}`, {diameter: 0.05}, scene);
+                box.position.x = 0;
+                box.position.y = 0;
+                box.position.z = 0;
+                box.material = keypoint_mat;
+                box.parent = dummy;
+                box.setEnabled(false);
+                people_meshes_available.push(box)
+            }
+
+            //drawBodyParts(pidx, person, scene, parent, bodypart_mat);
+            bpidx = 0;
+            for(let body_part_connector of body_part_connectors) {
+                let path = [ new BABYLON.Vector3(0, 0, 0),
+                    new BABYLON.Vector3(0, 0, 0)];
+                let part = BABYLON.MeshBuilder.CreateTube(
+                    `bp-${pidx}-${bpidx}`,
+                    {
+                        path: path,
+                        radius: 0.01,
+                        updatable: true
+                    }
+                );
+                part.material = bodypart_mats[bpidx];
+                part.parent = dummy;
+                part.setEnabled(false);
+                bodypart_meshes_available.push(part);
+                bpidx++;
+            }
+        }
+
+        return {scene, context};
+    };
+
+    let engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+    let {scene, context} = createScene();
+
+
+    // Resize
+    window.addEventListener("resize", function () {
+        engine.resize();
+    });
+
+
+
+    let assetsManager = new BABYLON.AssetsManager(scene);
+    let loadDataTask = assetsManager.addTextFileTask("data task", "pose_tracking_test_output_10min-poses_only-filtered.json");
+    loadDataTask.onSuccess = function(task) {
+        console.log("loaded data!");
+        console.log(task.text[0]);
+        let data = JSON.parse(task.text);
+        context["keypoints_iterable"] = cycle(Object.entries(data));
+        context.recordState = { isRecording: false };
+        // render just the first frame without playing through sequence
+        renderFrame(context);
+        // start game loop, but don't play sequence as context.state.isPLaying is false
+
+        //gameLoop(context);
+
+        //let canvas = document.getElementById('canvas');
+        let stream = canvas.captureStream(30);
+        let recorder = new MediaRecorder(stream);
+        recorder.addEventListener('dataavailable', handleDataAvailable);
+
+        console.log("adding event listener!");
+        scene.onKeyboardObservable.add((kbInfo) => {
+            let key = kbInfo.event.key;
+            let keyCode = kbInfo.event.keyCode;
+
+            switch (kbInfo.type) {
+                //case BABYLON.KeyboardEventTypes.KEYDOWN:
+                //    console.log("KEY DOWN: ", kbInfo.event.key);
+                //    break;
+                case BABYLON.KeyboardEventTypes.KEYUP:
+                    console.log("KEY UP: ", kbInfo.event.keyCode);
+                    console.log("KEY UP: ", key);
+                    switch (keyCode) {
+                        case 32:
+                            let { state } = context;
+                            state.isPlaying = !state.isPlaying;
+                            console.log(`Setting state.isPlaying to ${state.isPlaying}`);
+                            break;
+                        case 13:
+                            let { recordState } = context;
+                            recordState.isRecording = !recordState.isRecording;
+
+                            if (recordState.isRecording) {
+                                recordedBlobs = [];
+                                recorder.start();
+                            } else {
+                                recorder.stop();
+                                playButton.disabled = false;
+                            }
+                            break;
+                        }
+                    break;
+            }
+        });
+        window.setTimeout(() => {context.state.isPlaying = true}, 1000);
+        console.log("done loading and setting up!");
+
+    };
+
+    function handleDataAvailable(event) {
+        if (event.data && event.data.size > 0) {
+            recordedBlobs.push(event.data);
+        }
+    }
+
+    assetsManager.onFinish = function(tasks) {
+        engine.runRenderLoop(function() {
+            scene.render();
+            if (context.state.isPlaying) {
+                renderFrame(context);
+            }
+        });
+    };
+
+    assetsManager.load();
+
+</script>
+</body>
+</html>
