@@ -117,12 +117,6 @@ def reconstruct3d(file, camera_calibration, output, debug_output):
     all_poses3d = []
     pbar = tqdm(total=len(df))
     for frame_number, (index, row) in enumerate(df.iterrows()):
-        #if frame_number < 1800:
-        #    continue
-        #if frame_number > 1900:
-        #    break
-        #if frame_number % 600 == 0:
-        #    print(frame_number)
         graph = nx.Graph()
         for camera1_idx, camera_name1 in enumerate(camera_names):
             camera_calibration1 = cameras[camera_name1]['calibration']
@@ -187,77 +181,24 @@ def reconstruct3d(file, camera_calibration, output, debug_output):
                         weight_inverse=-math.log(reprojection_error),
                         weight=reprojection_error
                     )
-                    ### DEBUG
-                    #if (1,2) == (camera1_idx, idx1) and (2,0) == (camera2_idx, idx2):
-                    #    import ipdb;ipdb.set_trace()
-                    ### END DEBUG
+
         graph_likely = get_likely_matches(graph, 15)
         graph_best = get_best_matches(graph_likely, min_edges=1)
         poses3d = []
         for src, tgt, data in graph_best.edges(data=True):
-            poses3d.append(data['pose'])#['keypoints_3d'])
+            poses3d.append(data['pose'])
         all_poses3d.append(poses3d)
         pbar.update(1)
-        #import ipdb;ipdb.set_trace()
+
     pbar.close()
 
+    log.info("Creating dataframe for serialization")
     if debug_output:
-        #import ipdb;ipdb.set_trace()
         all_poses = {idx: {"poses": np.array([p['keypoints_3d'] for p in poses]), "debug": [{k: p[k] for k in p.keys() if k != "keypoints_3d"} for p in poses]} for idx, poses in enumerate(all_poses3d)}
     else:
         all_poses = {idx: {"poses": np.array([p['keypoints_3d'] for p in poses])} for idx, poses in enumerate(all_poses3d)}
 
     df = pd.DataFrame.from_dict(all_poses, orient="index")
+    log.info("Writing output to ")
     df.poses.to_json("{}.json".format(output))
     df.to_pickle("{}.pickle.xz".format(output), compression='xz')
-    print("done!")
-    #import ipdb;ipdb.set_trace()
-    #import matplotlib.pyplot as plt
-    #nx.draw(graph, with_labels=True)
-    #plt.show()
-
-    if False:
-        all_3d_poses = Poses3D.from_poses_2d_timestep(
-            poses_2d,
-            camera_calibration_data_all_cameras)
-
-        matched_3d_poses = all_3d_poses.extract_matched_poses(projection_error_threshold=10)
-        #print('\nMatched pose projection errors:')
-        #print(matched_3d_poses.projection_errors())
-
-        reprojected_poses_2d = matched_3d_poses.to_poses_2d()
-        #import ipdb;ipdb.set_trace()
-        rvis = []
-        for rposes, oimage, camera_name in zip(reprojected_poses_2d.poses, orig_images, camera_names):
-            ivis = draw_pose2d(rposes, oimage.copy())
-            #cv2.imshow("{}-reproject".format(camera_name), ivis)
-            rvis.append(ivis)
-
-        vis1 = stack_images(drawn_images)
-        vis2 = stack_images(rvis)
-        #vis3 = stack_images([vis1, vis2], canvas_width=480*3)
-
-        # pack data
-        kps_2d = poses_2d.keypoints()
-        conf_2d = poses_2d.confidence_scores()
-        for camera_idx, (k, c) in enumerate(zip(kps_2d, conf_2d)):
-            #print(camera_idx, k, c)
-            pose_list = []
-            for pose, confidence in zip(k, c):
-                pose_conf = np.append(pose, confidence.reshape(-1, 1), axis=1)
-                pose_list.append(pose_conf)
-            keypoints_2d[camera_names[camera_idx]].append(np.array(pose_list))
-
-        # pack data
-        kps_2d = reprojected_poses_2d.keypoints()
-        conf_2d = reprojected_poses_2d.confidence_scores()
-        for camera_idx, (k, c) in enumerate(zip(kps_2d, conf_2d)):
-            #print(camera_idx, k, c)
-            pose_list = []
-            for pose, confidence in zip(k, c):
-                pose_conf = np.append(pose, confidence.reshape(-1, 1), axis=1)
-                pose_list.append(pose_conf)
-            keypoints_2d_reprojected[camera_names[camera_idx]].append(np.array(pose_list))
-
-        keypoints_3d.append(matched_3d_poses.keypoints())
-
