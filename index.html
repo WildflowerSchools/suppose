@@ -237,9 +237,34 @@
     }
 
     var renderFrame = function(context) {
-        let {scene, keypoints_iterable, parent, keypoint_mat, bodypart_mats} = context;
+        let {scene, keypoints_iterable, total_time, parent, keypoint_mat, bodypart_mats, time, last_index} = context;
+
+        delta = scene.getEngine().getDeltaTime() / 1000.0;
+        time += delta;
+        if (time > total_time) {
+            time = 0;
+        }
+        context['time'] = time;
+
+        let index = Math.round(time*10);
+        if (index == last_index) {
+            return;
+        }
+        var frame_index;
+
+        if(index == 0) {
+            [frame_index, keypoints] = keypoints_iterable.next().value;
+            frame_index = +frame_index;
+        } else {
+            frame_index = 0;
+            while (frame_index < index) {
+                [frame_index, keypoints] = keypoints_iterable.next().value;
+                frame_index = +frame_index;
+            }
+        }
+        context['last_index'] = frame_index;
         // FRAME SKIP!
-        if (false) {
+        /*if (false) {
             keypoints_iterable.next();
             keypoints_iterable.next();
             keypoints_iterable.next();
@@ -250,7 +275,9 @@
             //keypoints_iterable.next();
             //keypoints_iterable.next();
         }
-        let [frame_index, keypoints] = keypoints_iterable.next().value;
+        let [frame_index, keypoints] = keypoints_iterable.next().value;*/
+
+
 
 
         for(var mesh of people_meshes_used) {
@@ -266,7 +293,7 @@
         bodypart_meshes_available.push(...bodypart_meshes_used);
         bodypart_meshes_used = [];
         drawPerson(scene, keypoints, parent, keypoint_mat, bodypart_mats);
-        context['last_frame'] = frame_index;
+        //context['last_frame'] = frame_index;
     };
 
 
@@ -459,6 +486,11 @@
         console.log(task.text[0]);
         let data = JSON.parse(task.text);
         context["keypoints_iterable"] = cycle(Object.entries(data));
+        context["keypoints"] = data;
+        context["total_time"] = Object.keys(data).length * 0.1; // hardcode 10 fps for now
+        context["time"] = 0;
+        context["last_index"] = -1;
+
         context.recordState = { isRecording: false };
         // render just the first frame without playing through sequence
         renderFrame(context);
