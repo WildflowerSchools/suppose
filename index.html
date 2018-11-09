@@ -20,6 +20,10 @@
     <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
     <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
     <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script src="CCapture.all.min.js"></script>
+    <!--<script src="https://cdn.WebRTC-Experiment.com/RecordRTC.js"></script>
+    <script src="https://cdn.webrtc-experiment.com/screenshot.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/downloadjs/1.4.8/download.min.js"></script>-->
 
     <style>
         html, body {
@@ -32,7 +36,7 @@
 
         #canvasContainer {
             width: 1280px;
-            height: 800px;
+            height: 720px;
         }
 
         #renderCanvas {
@@ -45,7 +49,7 @@
 
         #videoContainer {
             width: 720;
-            height: 480;
+            height: 405;
             position: absolute;
             top: 0;
             margin-left: 720px;
@@ -138,6 +142,23 @@
         recordedVideo.controls = true;
         recordedVideo.play();
     });
+
+    var CCAPTURE_ENABLED = true;
+    var RECORDRTC_ENABLED = false;
+    if (CCAPTURE_ENABLED) {
+        var capturer = new CCapture({format: 'webm', framerate: 10,});
+    } else if (RECORDRTC_ENABLED) {
+        var options = {
+            type: 'canvas',
+            recorderType: CanvasRecorder,
+            mimeType: 'video/webm'
+            //frameInterval: 20 // minimum time between pushing frames to Whammy (in milliseconds)
+        };
+        var recorder = RecordRTC(canvas, options);
+    }
+
+    var first_start = false;
+    var end_movie = false;
 
     let NUM_PEOPLE_MESHES = 10;
     var people_meshes_available;
@@ -237,21 +258,68 @@
     }
 
     var renderFrame = function(context) {
-        let {scene, keypoints_iterable, total_time, parent, keypoint_mat, bodypart_mats, time, last_index} = context;
+        let {scene, keypoints_iterable, keypoints, keypoints_length, total_time, parent, keypoint_mat, bodypart_mats, time, last_index} = context;
 
-        delta = scene.getEngine().getDeltaTime() / 1000.0;
-        time += delta;
-        if (time > total_time) {
-            time = 0;
+        if (first_start == false) {
+            if (CCAPTURE_ENABLED) {
+                capturer.start()
+            } else if (RECORDRTC_ENABLED) {
+                recorder.startRecording();
+            }
+            first_start = true;
         }
-        context['time'] = time;
 
-        let index = Math.round(time*10);
-        if (index == last_index) {
-            return;
+        if (!CCAPTURE_ENABLED) {
+            delta = scene.getEngine().getDeltaTime() / 1000.0;
+            time += delta;
+            if (time >= total_time) {
+                time = 0;
+                if (!end_movie) {
+                    end_movie = true;
+                    if (CCAPTURE_ENABLED) {
+                        capturer.stop()
+                        capturer.save();
+                    } else if (RECORDRTC_ENABLED) {
+                        recorder.stopRecording(function (url) {
+                            //window.open(url);
+                            let blob = recorder.getBlob();
+                            download(blob, "video.webm", "video/webm");
+                        });
+                    }
+                }
+            }
+            context['time'] = time;
+
+            let index = Math.round(time * 10);
+
+
+            if (index == last_index) {
+                return;
+            }
         }
+        else {
+            // non-realtime
+            index = last_index + 1;
+        }
+
+        if (index >= keypoints_length) {
+            index = 0;
+            if (!end_movie) {
+                end_movie = true;
+                if (CCAPTURE_ENABLED) {
+                    capturer.stop()
+                    capturer.save();
+                } else if (RECORDRTC_ENABLED) {
+                    recorder.stopRecording(function (url) {
+                        //window.open(url);
+                        let blob = recorder.getBlob();
+                        download(blob, "video.webm", "video/webm");
+                    });
+                }
+            }
+        }
+
         var frame_index;
-
         if(index == 0) {
             [frame_index, keypoints] = keypoints_iterable.next().value;
             frame_index = +frame_index;
@@ -263,21 +331,6 @@
             }
         }
         context['last_index'] = frame_index;
-        // FRAME SKIP!
-        /*if (false) {
-            keypoints_iterable.next();
-            keypoints_iterable.next();
-            keypoints_iterable.next();
-            keypoints_iterable.next();
-            //keypoints_iterable.next();
-            //keypoints_iterable.next();
-            //keypoints_iterable.next();
-            //keypoints_iterable.next();
-            //keypoints_iterable.next();
-        }
-        let [frame_index, keypoints] = keypoints_iterable.next().value;*/
-
-
 
 
         for(var mesh of people_meshes_used) {
@@ -294,6 +347,12 @@
         bodypart_meshes_used = [];
         drawPerson(scene, keypoints, parent, keypoint_mat, bodypart_mats);
         //context['last_frame'] = frame_index;
+
+        if (CCAPTURE_ENABLED) {
+            if (!end_movie) {
+                capturer.capture(canvas);
+            }
+        }
     };
 
 
@@ -480,20 +539,27 @@
 
 
     let assetsManager = new BABYLON.AssetsManager(scene);
-    let loadDataTask = assetsManager.addTextFileTask("data task", "pose_tracking_test_output_10min-poses_only-filtered.json");
+    //let loadDataTask = assetsManager.addTextFileTask("data task", "pose_tracking_test_output_10min-poses_only-filtered.json");
+    //let loadDataTask = assetsManager.addTextFileTask("data task", "pose_tracks-cmu.pickle.xz__filtered.json");
+    //let loadDataTask = assetsManager.addTextFileTask("data task", "pose_tracks-from-2d-poses-cmu.pickle.xz__filtered.json");
+    //let loadDataTask = assetsManager.addTextFileTask("data task", "pose_tracks-from-2d_poses-mobilenet_thin.pickle.xz__filtered.json");
+    let loadDataTask = assetsManager.addTextFileTask("data task", "pose_tracks-from-3d_poses-unknown_model.pickle.xz__filtered.json");
+
+
     loadDataTask.onSuccess = function(task) {
         console.log("loaded data!");
         console.log(task.text[0]);
         let data = JSON.parse(task.text);
         context["keypoints_iterable"] = cycle(Object.entries(data));
         context["keypoints"] = data;
+        context['keypoints_length'] = Object.keys(data).length;
         context["total_time"] = Object.keys(data).length * 0.1; // hardcode 10 fps for now
         context["time"] = 0;
         context["last_index"] = -1;
 
         context.recordState = { isRecording: false };
         // render just the first frame without playing through sequence
-        renderFrame(context);
+        //renderFrame(context);
         // start game loop, but don't play sequence as context.state.isPLaying is false
 
         //gameLoop(context);
