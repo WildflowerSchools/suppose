@@ -69,22 +69,22 @@ class PoseExtractorServicer(suppose_pb2_grpc.PoseExtractorServicer):
         log.info("Estimator loaded!")
 
     def GetPose(self, image, context):
-        imbuf = image.value[0]
-        buf = io.BytesIO(imbuf)
-        image = np.load(buf)['image']
-        humans = self.estimator.inference(image, resize_to_default=True, upsample_size=4.0)
+        imbuf = image.data
+        imbytes = np.fromstring(imbuf, np.uint8)
+        img = cv2.imdecode(imbytes, cv2.IMREAD_COLOR)
+        humans = self.estimator.inference(img, resize_to_default=True, upsample_size=4.0)
         frame = suppose_pb2.Frame()
-        humans_to_Frame(frame, humans, image.shape[1], image.shape[0])
+        humans_to_Frame(frame, humans, img.shape[1], img.shape[0])
         return frame
 
     def StreamPoses(self, request_iterator, context):
         for image in request_iterator:
-            imbuf = image.value[0]
-            buf = io.BytesIO(imbuf)
-            image = np.load(buf)['image']
-            humans = self.estimator.inference(image, resize_to_default=True, upsample_size=4.0)
+            imbuf = image.data
+            imbytes = np.fromstring(imbuf, np.uint8)
+            img = cv2.imdecode(imbytes, cv2.IMREAD_COLOR)
+            humans = self.estimator.inference(img, resize_to_default=True, upsample_size=4.0)
             frame = suppose_pb2.Frame()
-            humans_to_Frame(frame, humans, image.shape[1], image.shape[0])
+            humans_to_Frame(frame, humans, img.shape[1], img.shape[0])
             yield frame
 
     def StreamPosesFromVideo(self, file, context):

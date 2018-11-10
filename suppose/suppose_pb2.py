@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='suppose',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\rsuppose.proto\x12\x07suppose\"\x1f\n\x07Point2D\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\"*\n\x07Point3D\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\"u\n\x06Pose2D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose2D.Keypoint2D\x1a<\n\nKeypoint2D\x12\x1f\n\x05point\x18\x01 \x01(\x0b\x32\x10.suppose.Point2D\x12\r\n\x05score\x18\x02 \x01(\x02\"\xa1\x01\n\x11ReprojectedPose2D\x12\x43\n\tkeypoints\x18\x01 \x03(\x0b\x32\x30.suppose.ReprojectedPose2D.ReprojectedKeypoint2D\x1aG\n\x15ReprojectedKeypoint2D\x12\x1f\n\x05point\x18\x01 \x01(\x0b\x32\x10.suppose.Point2D\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\"u\n\x06Pose3D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose3D.Keypoint3D\x1a<\n\nKeypoint3D\x12\x1f\n\x05point\x18\x01 \x01(\x0b\x32\x10.suppose.Point3D\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\":\n\x05\x46rame\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose2D\"|\n\x0eProcessedVideo\x12\x0e\n\x06\x63\x61mera\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0c\n\x04\x66ile\x18\x04 \x01(\t\x12\r\n\x05model\x18\x05 \x01(\t\x12\x1e\n\x06\x66rames\x18\x06 \x03(\x0b\x32\x0e.suppose.Frame\"G\n\x04Room\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x31\n\x10processed_videos\x18\x02 \x03(\x0b\x32\x17.suppose.ProcessedVideo\"H\n\x07Video3D\x12\x0c\n\x04room\x18\x01 \x01(\t\x12\x0f\n\x07\x63\x61meras\x18\x02 \x03(\t\x12\x1e\n\x05poses\x18\x03 \x03(\x0b\x32\x0f.suppose.Pose3D\"$\n\x05Image\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x03(\x0c\"\x14\n\x04\x46ile\x12\x0c\n\x04path\x18\x01 \x01(\t2\xac\x01\n\rPoseExtractor\x12+\n\x07GetPose\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00\x12\x33\n\x0bStreamPoses\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00(\x01\x30\x01\x12\x39\n\x14StreamPosesFromVideo\x12\r.suppose.File\x1a\x0e.suppose.Frame\"\x00\x30\x01\x62\x06proto3')
+  serialized_pb=_b('\n\rsuppose.proto\x12\x07suppose\"\x1f\n\x07Point2D\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\"*\n\x07Point3D\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\"u\n\x06Pose2D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose2D.Keypoint2D\x1a<\n\nKeypoint2D\x12\x1f\n\x05point\x18\x01 \x01(\x0b\x32\x10.suppose.Point2D\x12\r\n\x05score\x18\x02 \x01(\x02\"\xa1\x01\n\x11ReprojectedPose2D\x12\x43\n\tkeypoints\x18\x01 \x03(\x0b\x32\x30.suppose.ReprojectedPose2D.ReprojectedKeypoint2D\x1aG\n\x15ReprojectedKeypoint2D\x12\x1f\n\x05point\x18\x01 \x01(\x0b\x32\x10.suppose.Point2D\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\"u\n\x06Pose3D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose3D.Keypoint3D\x1a<\n\nKeypoint3D\x12\x1f\n\x05point\x18\x01 \x01(\x0b\x32\x10.suppose.Point3D\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\":\n\x05\x46rame\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose2D\"|\n\x0eProcessedVideo\x12\x0e\n\x06\x63\x61mera\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0c\n\x04\x66ile\x18\x04 \x01(\t\x12\r\n\x05model\x18\x05 \x01(\t\x12\x1e\n\x06\x66rames\x18\x06 \x03(\x0b\x32\x0e.suppose.Frame\"G\n\x04Room\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x31\n\x10processed_videos\x18\x02 \x03(\x0b\x32\x17.suppose.ProcessedVideo\"H\n\x07Video3D\x12\x0c\n\x04room\x18\x01 \x01(\t\x12\x0f\n\x07\x63\x61meras\x18\x02 \x03(\t\x12\x1e\n\x05poses\x18\x03 \x03(\x0b\x32\x0f.suppose.Pose3D\"#\n\x05Image\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x14\n\x04\x46ile\x12\x0c\n\x04path\x18\x01 \x01(\t2\xac\x01\n\rPoseExtractor\x12+\n\x07GetPose\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00\x12\x33\n\x0bStreamPoses\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00(\x01\x30\x01\x12\x39\n\x14StreamPosesFromVideo\x12\r.suppose.File\x1a\x0e.suppose.Frame\"\x00\x30\x01\x62\x06proto3')
 )
 
 
@@ -514,9 +514,9 @@ _IMAGE = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='value', full_name='suppose.Image.value', index=1,
-      number=2, type=12, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
+      name='data', full_name='suppose.Image.data', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -533,7 +533,7 @@ _IMAGE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=838,
-  serialized_end=874,
+  serialized_end=873,
 )
 
 
@@ -563,8 +563,8 @@ _FILE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=876,
-  serialized_end=896,
+  serialized_start=875,
+  serialized_end=895,
 )
 
 _POSE2D_KEYPOINT2D.fields_by_name['point'].message_type = _POINT2D
@@ -702,8 +702,8 @@ _POSEEXTRACTOR = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=899,
-  serialized_end=1071,
+  serialized_start=898,
+  serialized_end=1070,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetPose',

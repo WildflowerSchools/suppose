@@ -22,10 +22,14 @@ def process_response(call_future):
     print(type(call_future.result()))
 
 def get_pose(stub, image):
-    buf = io.BytesIO()
+    #buf = io.BytesIO()
     #np.savez_compressed(buf, image=image)
-    np.savez(buf, image=image)
-    image_pb = suppose_pb2.Image(value=[buf.getvalue()])
+    #np.savez(buf, image=image)
+    width = 432
+    height = 368
+    img = cv2.resize(image, (height, width))
+    ret, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
+    image_pb = suppose_pb2.Image(data=buf.tostring())
     frame = stub.GetPose(image_pb)
     #import ipdb;ipdb.set_trace()
     return frame
@@ -33,10 +37,11 @@ def get_pose(stub, image):
 def stream_poses(stub, image, N):
     def gen():
         for _ in range(N):
-            buf = io.BytesIO()
-            #np.savez_compressed(buf, image=image)
-            np.savez(buf, image=image)
-            image_pb = suppose_pb2.Image(value=[buf.getvalue()])
+            width = 432
+            height = 368
+            img = cv2.resize(image, (height, width))
+            ret, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
+            image_pb = suppose_pb2.Image(data=buf.tostring())
             yield image_pb
     responses = stub.StreamPoses(gen())
     return responses
@@ -62,7 +67,7 @@ def run():
     # of the code.
     with grpc.insecure_channel('localhost:50051') as channel:
         stub = suppose_pb2_grpc.PoseExtractorStub(channel)
-        if False:
+        if True:
             image = cv2.imread("/Users/lue/wildflower/still_2018-07-04-18-23-00_camera01.jpg")
             N = 10
             t0 = time.time()
@@ -83,19 +88,19 @@ def run():
             fps = N/elapsed_time
             print("Elapsed time: {}".format(elapsed_time))
             print("FPS: {}".format(fps))
-
-        file = suppose_pb2.File(path="/Users/lue/wildflower/samples/camera01/video_2018-07-04-18-20-00.mp4")
-        N = 0
-        t0 = time.time()
-        responses = stub.StreamPosesFromVideo(file)
-        #import ipdb;ipdb.set_trace()
-        for r in responses:
-            N += 1
-        t1 = time.time()
-        elapsed_time = t1 - t0
-        fps = N/elapsed_time
-        print("Elapsed time: {}".format(elapsed_time))
-        print("FPS: {}".format(fps))
+        else:
+            file = suppose_pb2.File(path="/Users/lue/wildflower/samples/camera01/video_2018-07-04-18-20-00.mp4")
+            N = 0
+            t0 = time.time()
+            responses = stub.StreamPosesFromVideo(file)
+            #import ipdb;ipdb.set_trace()
+            for r in responses:
+                N += 1
+            t1 = time.time()
+            elapsed_time = t1 - t0
+            fps = N/elapsed_time
+            print("Elapsed time: {}".format(elapsed_time))
+            print("FPS: {}".format(fps))
 
 if __name__ == '__main__':
     run()

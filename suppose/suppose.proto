@@ -67,7 +67,7 @@ message Video3D {
 
 message Image {
     string type = 1;
-    repeated bytes value = 2;
+    bytes data = 2;
 }
 
 message File {
