@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 from .common import timing
+from suppose import suppose_pb2
 
 
 log = Logger('pose2d')
@@ -44,29 +45,71 @@ def tfpose_to_pandas(poses, frame_width, frame_height):
     return df
 
 
+def humans_to_Frame(frame, humans, frame_width, frame_height):
+    #frame = suppose_pb2.Frame()
+    for human in humans:
+        body_parts = human.body_parts
+        #keypoints = []
+        pose2d = frame.poses.add()
+        #pose2d.keypoints = keypoints
+        for idx in range(MAX_NUM_BODY_PARTS):
+            keypoint = pose2d.keypoints.add()
+            try:
+                body_part = body_parts[idx]
+                keypoint.point.x = body_part.x * frame_width
+                keypoint.point.y = body_part.y * frame_height
+                keypoint.score = body_part.score
+
+                #keypoint = suppose_pb2.Pose2D.Keypoint2D(x=body_part.x * frame_width,
+                #                                       y=body_part.y *  frame_height,
+                #                                       score=body_part.score)
+            except KeyError:
+                #keypoint = suppose_pb2.Pose2D.Keypoint2D(x=0, y=0, score=0)
+                pass
+            #keypoints.append(keypoint)
+
+    #return frame
+
+@timing
+def tfposes_to_ProcessedVideo(poses, timestamps, frame_width, frame_height, input_file, model_name):
+    video = suppose_pb2.ProcessedVideo()
+    video.width = frame_width
+    video.height = frame_height
+    video.file = input_file
+    video.model = model_name
+    for timestamp, pose in zip(timestamps, poses):
+        frame = video.frames.add()
+        frame.timestamp = timestamp.timestamp()
+        humans_to_Frame(frame, pose, frame_width, frame_height)
+    return video
+
+
 def parse_datetime(a, format):
     return datetime.strptime(a, format)
 
 
 @timing
-def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
-    log.info("Processing {}".format(video))
+def extract_poses(input_file, e, model_name, datetime_start):
+    log.info("Processing {}".format(input_file))
     if datetime_start is None:
         datetime_start = datetime.fromtimestamp(0)
-    cap = cv2.VideoCapture(video)
+    cap = cv2.VideoCapture(input_file)
     video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     count = 0
     poses = []
     time0 = time.time()
     if cap.isOpened() is False:
-        raise IOError("Error reading file {}".format(video))
+        raise IOError("Error reading file {}".format(input_file))
 
     timestamps = []
     frame_numbers = []
     pbar = tqdm(total=video_length)
     while cap.isOpened():
+        # debug
+        if count > 10:
+            break
         offset = cap.get(cv2.CAP_PROP_POS_MSEC)
         ret_val, image = cap.read()
         if not ret_val:
@@ -81,25 +124,16 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
     time1 = time.time()
     log.info("{} fps".format((count / (time1 - time0))))
     log.info("{} s".format(time1 - time0))
-
-    if write_output:
-        df_poses_pickle_filename = '{}__poses_df-{}.pickle.xz'.format(video, model_name)
-        df_poses_json_filename = '{}__poses_df-{}.json.xz'.format(video, model_name)
-        df_poses = tfpose_to_pandas(poses, width, height)
-        df_poses.index = timestamps
-        df_poses['file'] = os.path.basename(video)
-        df_poses['model'] = model_name
-        df_poses['frame'] = frame_numbers
-        for column in ('file', 'model'):
-            df_poses[column] = df_poses[column].astype('category')
-
-        log.info("Writing to: {}".format(df_poses_pickle_filename))
-        df_poses.to_pickle(df_poses_pickle_filename, compression="xz")
-        log.info("Writing to: {}".format(df_poses_json_filename))
-        df_poses.to_json(df_poses_json_filename, compression="xz")
-
     cap.release()
     pbar.close()
+    log.info("Converting to protobuf")
+    processed_video = tfposes_to_ProcessedVideo(poses, timestamps, width, height, input_file, model_name)
+    return processed_video
+    #output_filename = "{}__ProcessedVideo.pb".format(input_file)
+    #log.info("Writing to file: {}".format(output_filename))
+    #with open(output_filename, "wb") as f:
+    #    f.write(processed_video.SerializeToString())
+
 
 
 @timing
@@ -129,7 +163,11 @@ def extract(videos, model, resolution, write_output, display_progress, file_date
                 datetime_start = parse_datetime(os.path.basename(f), file_datetime_format)
             else:
                 datetime_start = None
-            extract_poses(f, e, model, write_output, datetime_start)
+            processed_video = extract_poses(f, e, model, datetime_start)
+            if write_output:
+                output_filename = "{}__ProcessedVideo-{}.pb".format(f, model)
+                with open(output_filename, 'wb') as out:
+                    out.write(processed_video.SerializeToString())
 
     log.info("Done!")
 

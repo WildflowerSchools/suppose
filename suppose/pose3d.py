@@ -74,20 +74,20 @@ def get_likely_matches(g, max_error):
         best_edges = {}    # target_camera -> best_edge
         for edge in g.edges(node, data=True):
             _, tgt, data = edge
-            if data['weight'] > max_error:
+            weight = data['weight']
+            # reject when no reprojection found or beyond max error threshold
+            if np.isnan(weight) or weight > max_error:
                 continue
             # tgt[0] is camera the paired keypoints is located in
             # alternatively, access data['pose']['camera2']
             if tgt[0] in best_edges:
                 _, _, data2 = best_edges[tgt[0]]
-                if data['weight'] < data2['weight']:
+                # compare against np.nan should return false
+                if weight < data2['weight']:
                     best_edges[tgt[0]] = edge
             else:
                 best_edges[tgt[0]] = edge
         gg.add_edges_from(best_edges.values())
-        #for best_edge in best_edges.values():
-            #gg.add_edges_from([best_edge])
-
 
     return gg.to_undirected(reciprocal=True)
 
@@ -142,9 +142,12 @@ def reconstruct3d(file, camera_calibration, output, debug_output):
                     pp1_rmse = rmse(p1_orig_shared, pp1_reprojected)
                     pp2_rmse = rmse(p2_orig_shared, pp2_reprojected)
                     if np.isnan(pp1_rmse) or np.isnan(pp2_rmse):
+                        # should just continue the loop and ignore this edge
                         reprojection_error = np.nan
                     else:
                         reprojection_error = max(pp1_rmse, pp2_rmse)
+                        # should just reject 3d poses errors > threshold
+
                     keypoints_3d = np.full([len(pts_present)]+list(pts3d.shape[1:]), np.nan)
                     keypoints_3d[pts_present] = pts3d
                     if debug_output:
