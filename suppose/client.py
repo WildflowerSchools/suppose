@@ -28,7 +28,7 @@ def get_pose(stub, image):
     width = 432
     height = 368
     img = cv2.resize(image, (height, width))
-    ret, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
+    ret, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
     image_pb = suppose_pb2.Image(data=buf.tostring())
     frame = stub.GetPose(image_pb)
     #import ipdb;ipdb.set_trace()
@@ -40,7 +40,7 @@ def stream_poses(stub, image, N):
             width = 432
             height = 368
             img = cv2.resize(image, (height, width))
-            ret, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
+            ret, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
             image_pb = suppose_pb2.Image(data=buf.tostring())
             yield image_pb
     responses = stub.StreamPoses(gen())
@@ -65,9 +65,9 @@ def run():
     # NOTE(gRPC Python Team): .close() is possible on a channel and should be
     # used in circumstances in which the with statement does not fit the needs
     # of the code.
-    with grpc.insecure_channel('localhost:50051') as channel:
+    with grpc.insecure_channel('localhost:50052') as channel:
         stub = suppose_pb2_grpc.PoseExtractorStub(channel)
-        if True:
+        if False:
             image = cv2.imread("/Users/lue/wildflower/still_2018-07-04-18-23-00_camera01.jpg")
             N = 10
             t0 = time.time()
@@ -79,17 +79,20 @@ def run():
             print("Elapsed time: {}".format(elapsed_time))
             print("FPS: {}".format(fps))
 
+            N = 150
             t0 = time.time()
             responses = stream_poses(stub, image, N)
+            fs = []
             for r in responses:
-                pass
+                fs.append(r)
             t1 = time.time()
             elapsed_time = t1 - t0
             fps = N/elapsed_time
             print("Elapsed time: {}".format(elapsed_time))
             print("FPS: {}".format(fps))
+            #import ipdb;ipdb.set_trace()
         else:
-            file = suppose_pb2.File(path="/Users/lue/wildflower/samples/camera01/video_2018-07-04-18-20-00.mp4")
+            file = suppose_pb2.File(path="/home/lue/data/wf-classroom-data/camera-sandbox/camera/2018-07-04/camera01/video_2018-07-04-18-20-00.mp4")
             N = 0
             t0 = time.time()
             responses = stub.StreamPosesFromVideo(file)
