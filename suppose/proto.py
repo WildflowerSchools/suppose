@@ -24,6 +24,7 @@ def load_protobuf(file, pb_cls):
     obj.ParseFromString(contents)
     return obj
 
+
 def write_protobuf(file, pb):
     contents = pb.SerializeToString()
     if hasattr(file, 'write'):
@@ -31,7 +32,6 @@ def write_protobuf(file, pb):
     else:
         with open(file, 'wb') as f:
             f.write(contents)
-
 
 
 def pose2d_to_array(pb):
@@ -52,7 +52,7 @@ def array_to_pose2d(a):
 
 
 def protonic(protobuf_cls):
-    """ Class decorator to """
+    """ Class decorator to support marshing/unmarshaling of attr classes to protobuf equivalents """
     def protonic_mix(cls):
         def from_proto(pb):
             obj = cls()
@@ -109,7 +109,6 @@ def protonic(protobuf_cls):
         cls.to_proto_file = to_proto_file
         cls.from_dict = staticmethod(from_dict)
         cls.to_dict = to_dict
-
         return cls
 
     return protonic_mix

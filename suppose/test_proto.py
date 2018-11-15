@@ -5,6 +5,9 @@ from math import fabs
 import tempfile
 import attr
 import cattr
+from hypothesis import given, infer
+#from hypothesis.strategies import from_type, builds, floats, lists, composite, assume
+import hypothesis.strategies as st
 
 
 def assert_almost_equals(a, b, eps=1e-6):
@@ -122,9 +125,46 @@ def test_protonic_to_file_from_file():
         # protobuf float, so do the following comparision on the protobuf forms
         assert pv.to_proto() == pv2.to_proto()
 
+
 def test_protonic_to_from_dict():
     pv = make_processed_video()
     d = pv.to_dict()
     pv2 = ProcessedVideo.from_dict(d)
     assert pv == pv2
 
+
+@st.composite
+def make_ProcessedVideo(draw):
+    vector2f_build = st.builds(Vector2f, x=st.floats(), y=st.floats())
+    keypoint2D_build = st.builds(Keypoint2D, point=vector2f_build, score=st.floats())
+    keypoint2Ds_build = st.lists(keypoint2D_build, min_size=1, max_size=5)
+    pose_build = st.builds(Pose2D, keypoints=keypoint2Ds_build)
+    poses_build = st.lists(pose_build, min_size=0, max_size=5)
+    frame_build = st.builds(Frame, timestamp=st.floats(), poses=poses_build)
+    frames_build = st.lists(frame_build, min_size=0, max_size=5)
+
+    pv_build = st.builds(ProcessedVideo, camera=st.text(max_size=100), width=st.integers(), height=st.integers(), file=st.text(max_size=100), model=st.text(max_size=100))
+    pv = draw(pv_build)
+    pv.frames = draw(frames_build)
+    return pv
+
+
+@given(make_ProcessedVideo())
+def test_ProcessedVideo_to_from_dict(pv):
+    #print(pv)
+    d = pv.to_dict()
+    pv2 = ProcessedVideo.from_dict(d)
+    assert pv == pv2
+
+@given(make_ProcessedVideo())
+def test_ProcessedVideo_to_from_proto_file(pv):
+    with tempfile.TemporaryFile() as fp:
+        pv.to_proto_file(fp)
+        fp.seek(0)
+        pv2 = ProcessedVideo.from_proto_file(fp)
+
+        # floating point precision issue with native python float vs
+        # protobuf float, so do the following comparision on the protobuf forms
+        pb = pv.to_proto()
+        pb2 = pv2.to_proto()
+        assert pb == pb2
