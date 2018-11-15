@@ -3,11 +3,46 @@ from suppose.proto import *
 from suppose import suppose_pb2
 from math import fabs
 import tempfile
+import attr
+import cattr
 
 
 def assert_almost_equals(a, b, eps=1e-6):
     assert fabs(a - b) <= eps
 
+
+def make_processed_video(n_frames=3, n_poses=2, n_keypoints=4):
+    pv = ProcessedVideo(camera="testcam")
+    for j in range(1, n_frames+1):
+        frame = Frame()
+        pv.frames.append(frame)
+        frame.timestamp = 123.1*j
+        for i in range(1, n_poses+1):
+            pose = Pose2D()
+            frame.poses.append(pose)
+            for k in range(1, n_keypoints+1):
+                keypoint = Keypoint2D()
+                pose.keypoints.append(keypoint)
+                id = k * i * j + .1
+                keypoint.point.x = id
+                keypoint.point.y = id + 1
+                keypoint.score = id + 2
+    return pv
+
+def make_processed_video_pb(n_frames=3, n_poses=2, n_keypoints=4):
+    pv_pb = suppose_pb2.ProcessedVideo(camera="testcam")
+    for j in range(1, n_frames+1):
+        frame = pv_pb.frames.add()
+        frame.timestamp = 123.1*j
+        for i in range(1, n_poses+1):
+            pose = frame.poses.add()
+            for k in range(1, n_keypoints+1):
+                keypoint = pose.keypoints.add()
+                id = k * i * j + .1
+                keypoint.point.x = id
+                keypoint.point.y = id + 1
+                keypoint.score = id + 2
+    return pv_pb
 
 def test_pose2d_to_array():
     pose = suppose_pb2.Pose2D()
@@ -41,22 +76,10 @@ def test_array_to_pose2d():
     assert pose == expected_pose
 
 def test_protonic_from_proto():
-    pv_pb = suppose_pb2.ProcessedVideo(camera="testcam")
     n_frames = 3
     n_poses = 2
     n_keypoints = 4
-    for j in range(1, n_frames+1):
-        frame = pv_pb.frames.add()
-        frame.timestamp = 123.1*j
-        for i in range(1, n_poses+1):
-            pose = frame.poses.add()
-            for k in range(1, n_keypoints+1):
-                keypoint = pose.keypoints.add()
-                id = k * i * j + .1
-                keypoint.point.x = id
-                keypoint.point.y = id + 1
-                keypoint.score = id + 2
-
+    pv_pb = make_processed_video_pb(n_frames, n_poses, n_keypoints)
 
     pv = ProcessedVideo.from_proto(pv_pb)
     assert pv.camera == "testcam"
@@ -76,60 +99,19 @@ def test_protonic_from_proto():
     assert pv_pb == pv_pb2
 
 def test_protonic_to_proto():
-    pv = ProcessedVideo(camera="testcam")
     n_frames = 3
     n_poses = 2
     n_keypoints = 4
-    for j in range(1, n_frames+1):
-        frame = Frame()
-        pv.frames.append(frame)
-        frame.timestamp = 123.1*j
-        for i in range(1, n_poses+1):
-            pose = Pose2D()
-            frame.poses.append(pose)
-            for k in range(1, n_keypoints+1):
-                keypoint = Keypoint2D()
-                pose.keypoints.append(keypoint)
-                id = k * i * j + .1
-                keypoint.point.x = id
-                keypoint.point.y = id + 1
-                keypoint.score = id + 2
-
-    pv_pb = suppose_pb2.ProcessedVideo(camera="testcam")
-    for j in range(1, n_frames+1):
-        frame = pv_pb.frames.add()
-        frame.timestamp = 123.1*j
-        for i in range(1, n_poses+1):
-            pose = frame.poses.add()
-            for k in range(1, n_keypoints+1):
-                keypoint = pose.keypoints.add()
-                id = k * i * j + .1
-                keypoint.point.x = id
-                keypoint.point.y = id + 1
-                keypoint.score = id + 2
-
+    pv = make_processed_video(n_frames, n_poses, n_keypoints)
+    pv_pb = make_processed_video_pb(n_frames, n_poses, n_keypoints)
     pv_pb2 = pv.to_proto()
     assert pv_pb2 == pv_pb
 
 def test_protonic_to_file_from_file():
-    pv = ProcessedVideo(camera="testcam")
     n_frames = 3
     n_poses = 2
     n_keypoints = 4
-    for j in range(1, n_frames+1):
-        frame = Frame()
-        pv.frames.append(frame)
-        frame.timestamp = 123.1*j
-        for i in range(1, n_poses+1):
-            pose = Pose2D()
-            frame.poses.append(pose)
-            for k in range(1, n_keypoints+1):
-                keypoint = Keypoint2D()
-                pose.keypoints.append(keypoint)
-                id = k * i * j + .1
-                keypoint.point.x = id
-                keypoint.point.y = id + 1
-                keypoint.score = id + 2
+    pv = make_processed_video(n_frames, n_poses, n_keypoints)
 
     with tempfile.TemporaryFile() as fp:
         pv.to_proto_file(fp)
@@ -139,3 +121,10 @@ def test_protonic_to_file_from_file():
         # floating point precision issue with native python float vs
         # protobuf float, so do the following comparision on the protobuf forms
         assert pv.to_proto() == pv2.to_proto()
+
+def test_protonic_to_from_dict():
+    pv = make_processed_video()
+    d = pv.to_dict()
+    pv2 = ProcessedVideo.from_dict(d)
+    assert pv == pv2
+

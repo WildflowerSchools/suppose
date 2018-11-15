@@ -3,6 +3,7 @@ Protobuf-related utilities for suppose.proto
 """
 import typing
 import attr
+import cattr
 import numpy as np
 from suppose import suppose_pb2
 
@@ -96,10 +97,19 @@ def protonic(protobuf_cls):
         def to_proto_file(self, file):
             write_protobuf(file, self.to_proto())
 
+        def from_dict(d):
+            return cattr.structure(d, cls)
+
+        def to_dict(self):
+            return cattr.unstructure(self)
+
         cls.from_proto = staticmethod(from_proto)
         cls.from_proto_file = staticmethod(from_proto_file)
         cls.to_proto = to_proto
         cls.to_proto_file = to_proto_file
+        cls.from_dict = staticmethod(from_dict)
+        cls.to_dict = to_dict
+
         return cls
 
     return protonic_mix
