@@ -2,12 +2,12 @@ syntax = "proto3";
 
 package suppose;
 
-message Point2D {
+message Vector2f {
     float x = 1;
     float y = 2;
 }
 
-message Point3D {
+message Vector3f {
     float x = 1;
     float y = 2;
     float z = 3;
@@ -15,7 +15,7 @@ message Point3D {
 
 message Pose2D {
     message Keypoint2D {
-        Point2D point = 1;
+        Vector2f point = 1;
         float score = 2;
     }
     repeated Keypoint2D keypoints = 1;
@@ -24,7 +24,7 @@ message Pose2D {
 
 message ReprojectedPose2D {
     message ReprojectedKeypoint2D {
-        Point2D point = 1;
+        Vector2f point = 1;
         float error = 2;
     }
     repeated ReprojectedKeypoint2D keypoints = 1;
@@ -32,17 +32,25 @@ message ReprojectedPose2D {
 }
 
 message Pose3D {
+    // openpose_utilities Pose3D is used for both 3d recontructed poses, and tracked 3d poses
+    // need to separate those classes so we don't unrelated properties under one class (std and error)
     message Keypoint3D {
-        Point3D point = 1;
-        float error = 2;
+        Vector3f point = 1;
+        Vector3f std = 2;
     }
-    repeated Keypoint3D keypoints = 1;
+    float error = 1;
+    repeated Keypoint3D keypoints = 2;
     //map<string, Keypoint3D> keypoints = 1;
 }
 
 message Frame {
     double timestamp = 1;
     repeated Pose2D poses = 2;
+}
+
+message Frame3D {
+    double timestamp = 1;
+    repeated Pose3D poses = 2;
 }
 
 message ProcessedVideo {
@@ -59,10 +67,10 @@ message Room {
     repeated ProcessedVideo processed_videos = 2;
 }
 
-message Video3D {
+message ProcessedVideo3D {
     string room = 1;
     repeated string cameras = 2;
-    repeated Pose3D poses = 3;
+    repeated Frame3D frames = 3;
 }
 
 message Image {

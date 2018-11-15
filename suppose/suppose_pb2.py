@@ -19,28 +19,28 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='suppose',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\rsuppose.proto\x12\x07suppose\"\x1f\n\x07Point2D\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\"*\n\x07Point3D\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\"u\n\x06Pose2D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose2D.Keypoint2D\x1a<\n\nKeypoint2D\x12\x1f\n\x05point\x18\x01 \x01(\x0b\x32\x10.suppose.Point2D\x12\r\n\x05score\x18\x02 \x01(\x02\"\xa1\x01\n\x11ReprojectedPose2D\x12\x43\n\tkeypoints\x18\x01 \x03(\x0b\x32\x30.suppose.ReprojectedPose2D.ReprojectedKeypoint2D\x1aG\n\x15ReprojectedKeypoint2D\x12\x1f\n\x05point\x18\x01 \x01(\x0b\x32\x10.suppose.Point2D\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\"u\n\x06Pose3D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose3D.Keypoint3D\x1a<\n\nKeypoint3D\x12\x1f\n\x05point\x18\x01 \x01(\x0b\x32\x10.suppose.Point3D\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\":\n\x05\x46rame\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose2D\"|\n\x0eProcessedVideo\x12\x0e\n\x06\x63\x61mera\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0c\n\x04\x66ile\x18\x04 \x01(\t\x12\r\n\x05model\x18\x05 \x01(\t\x12\x1e\n\x06\x66rames\x18\x06 \x03(\x0b\x32\x0e.suppose.Frame\"G\n\x04Room\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x31\n\x10processed_videos\x18\x02 \x03(\x0b\x32\x17.suppose.ProcessedVideo\"H\n\x07Video3D\x12\x0c\n\x04room\x18\x01 \x01(\t\x12\x0f\n\x07\x63\x61meras\x18\x02 \x03(\t\x12\x1e\n\x05poses\x18\x03 \x03(\x0b\x32\x0f.suppose.Pose3D\"#\n\x05Image\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x14\n\x04\x46ile\x12\x0c\n\x04path\x18\x01 \x01(\t2\xac\x01\n\rPoseExtractor\x12+\n\x07GetPose\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00\x12\x33\n\x0bStreamPoses\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00(\x01\x30\x01\x12\x39\n\x14StreamPosesFromVideo\x12\r.suppose.File\x1a\x0e.suppose.Frame\"\x00\x30\x01\x62\x06proto3')
+  serialized_pb=_b('\n\rsuppose.proto\x12\x07suppose\" \n\x08Vector2f\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\"+\n\x08Vector3f\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\"v\n\x06Pose2D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose2D.Keypoint2D\x1a=\n\nKeypoint2D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector2f\x12\r\n\x05score\x18\x02 \x01(\x02\"\xa2\x01\n\x11ReprojectedPose2D\x12\x43\n\tkeypoints\x18\x01 \x03(\x0b\x32\x30.suppose.ReprojectedPose2D.ReprojectedKeypoint2D\x1aH\n\x15ReprojectedKeypoint2D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector2f\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\"\x96\x01\n\x06Pose3D\x12\r\n\x05\x65rror\x18\x01 \x01(\x02\x12-\n\tkeypoints\x18\x02 \x03(\x0b\x32\x1a.suppose.Pose3D.Keypoint3D\x1aN\n\nKeypoint3D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector3f\x12\x1e\n\x03std\x18\x02 \x01(\x0b\x32\x11.suppose.Vector3f\":\n\x05\x46rame\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose2D\"<\n\x07\x46rame3D\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose3D\"|\n\x0eProcessedVideo\x12\x0e\n\x06\x63\x61mera\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0c\n\x04\x66ile\x18\x04 \x01(\t\x12\r\n\x05model\x18\x05 \x01(\t\x12\x1e\n\x06\x66rames\x18\x06 \x03(\x0b\x32\x0e.suppose.Frame\"G\n\x04Room\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x31\n\x10processed_videos\x18\x02 \x03(\x0b\x32\x17.suppose.ProcessedVideo\"S\n\x10ProcessedVideo3D\x12\x0c\n\x04room\x18\x01 \x01(\t\x12\x0f\n\x07\x63\x61meras\x18\x02 \x03(\t\x12 \n\x06\x66rames\x18\x03 \x03(\x0b\x32\x10.suppose.Frame3D\"#\n\x05Image\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x14\n\x04\x46ile\x12\x0c\n\x04path\x18\x01 \x01(\t2\xac\x01\n\rPoseExtractor\x12+\n\x07GetPose\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00\x12\x33\n\x0bStreamPoses\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00(\x01\x30\x01\x12\x39\n\x14StreamPosesFromVideo\x12\r.suppose.File\x1a\x0e.suppose.Frame\"\x00\x30\x01\x62\x06proto3')
 )
 
 
 
 
-_POINT2D = _descriptor.Descriptor(
-  name='Point2D',
-  full_name='suppose.Point2D',
+_VECTOR2F = _descriptor.Descriptor(
+  name='Vector2f',
+  full_name='suppose.Vector2f',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='x', full_name='suppose.Point2D.x', index=0,
+      name='x', full_name='suppose.Vector2f.x', index=0,
       number=1, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='y', full_name='suppose.Point2D.y', index=1,
+      name='y', full_name='suppose.Vector2f.y', index=1,
       number=2, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
@@ -59,33 +59,33 @@ _POINT2D = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=26,
-  serialized_end=57,
+  serialized_end=58,
 )
 
 
-_POINT3D = _descriptor.Descriptor(
-  name='Point3D',
-  full_name='suppose.Point3D',
+_VECTOR3F = _descriptor.Descriptor(
+  name='Vector3f',
+  full_name='suppose.Vector3f',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='x', full_name='suppose.Point3D.x', index=0,
+      name='x', full_name='suppose.Vector3f.x', index=0,
       number=1, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='y', full_name='suppose.Point3D.y', index=1,
+      name='y', full_name='suppose.Vector3f.y', index=1,
       number=2, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='z', full_name='suppose.Point3D.z', index=2,
+      name='z', full_name='suppose.Vector3f.z', index=2,
       number=3, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
@@ -103,8 +103,8 @@ _POINT3D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=59,
-  serialized_end=101,
+  serialized_start=60,
+  serialized_end=103,
 )
 
 
@@ -141,8 +141,8 @@ _POSE2D_KEYPOINT2D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=160,
-  serialized_end=220,
+  serialized_start=162,
+  serialized_end=223,
 )
 
 _POSE2D = _descriptor.Descriptor(
@@ -171,8 +171,8 @@ _POSE2D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=103,
-  serialized_end=220,
+  serialized_start=105,
+  serialized_end=223,
 )
 
 
@@ -209,8 +209,8 @@ _REPROJECTEDPOSE2D_REPROJECTEDKEYPOINT2D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=313,
-  serialized_end=384,
+  serialized_start=316,
+  serialized_end=388,
 )
 
 _REPROJECTEDPOSE2D = _descriptor.Descriptor(
@@ -239,8 +239,8 @@ _REPROJECTEDPOSE2D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=223,
-  serialized_end=384,
+  serialized_start=226,
+  serialized_end=388,
 )
 
 
@@ -259,9 +259,9 @@ _POSE3D_KEYPOINT3D = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='error', full_name='suppose.Pose3D.Keypoint3D.error', index=1,
-      number=2, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
+      name='std', full_name='suppose.Pose3D.Keypoint3D.std', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -277,8 +277,8 @@ _POSE3D_KEYPOINT3D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=443,
-  serialized_end=503,
+  serialized_start=463,
+  serialized_end=541,
 )
 
 _POSE3D = _descriptor.Descriptor(
@@ -289,8 +289,15 @@ _POSE3D = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='keypoints', full_name='suppose.Pose3D.keypoints', index=0,
-      number=1, type=11, cpp_type=10, label=3,
+      name='error', full_name='suppose.Pose3D.error', index=0,
+      number=1, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='keypoints', full_name='suppose.Pose3D.keypoints', index=1,
+      number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -307,8 +314,8 @@ _POSE3D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=386,
-  serialized_end=503,
+  serialized_start=391,
+  serialized_end=541,
 )
 
 
@@ -345,8 +352,46 @@ _FRAME = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=505,
-  serialized_end=563,
+  serialized_start=543,
+  serialized_end=601,
+)
+
+
+_FRAME3D = _descriptor.Descriptor(
+  name='Frame3D',
+  full_name='suppose.Frame3D',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='timestamp', full_name='suppose.Frame3D.timestamp', index=0,
+      number=1, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='poses', full_name='suppose.Frame3D.poses', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=603,
+  serialized_end=663,
 )
 
 
@@ -411,8 +456,8 @@ _PROCESSEDVIDEO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=565,
-  serialized_end=689,
+  serialized_start=665,
+  serialized_end=789,
 )
 
 
@@ -449,34 +494,34 @@ _ROOM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=691,
-  serialized_end=762,
+  serialized_start=791,
+  serialized_end=862,
 )
 
 
-_VIDEO3D = _descriptor.Descriptor(
-  name='Video3D',
-  full_name='suppose.Video3D',
+_PROCESSEDVIDEO3D = _descriptor.Descriptor(
+  name='ProcessedVideo3D',
+  full_name='suppose.ProcessedVideo3D',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='room', full_name='suppose.Video3D.room', index=0,
+      name='room', full_name='suppose.ProcessedVideo3D.room', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='cameras', full_name='suppose.Video3D.cameras', index=1,
+      name='cameras', full_name='suppose.ProcessedVideo3D.cameras', index=1,
       number=2, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='poses', full_name='suppose.Video3D.poses', index=2,
+      name='frames', full_name='suppose.ProcessedVideo3D.frames', index=2,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -494,8 +539,8 @@ _VIDEO3D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=764,
-  serialized_end=836,
+  serialized_start=864,
+  serialized_end=947,
 )
 
 
@@ -532,8 +577,8 @@ _IMAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=838,
-  serialized_end=873,
+  serialized_start=949,
+  serialized_end=984,
 )
 
 
@@ -563,49 +608,52 @@ _FILE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=875,
-  serialized_end=895,
+  serialized_start=986,
+  serialized_end=1006,
 )
 
-_POSE2D_KEYPOINT2D.fields_by_name['point'].message_type = _POINT2D
+_POSE2D_KEYPOINT2D.fields_by_name['point'].message_type = _VECTOR2F
 _POSE2D_KEYPOINT2D.containing_type = _POSE2D
 _POSE2D.fields_by_name['keypoints'].message_type = _POSE2D_KEYPOINT2D
-_REPROJECTEDPOSE2D_REPROJECTEDKEYPOINT2D.fields_by_name['point'].message_type = _POINT2D
+_REPROJECTEDPOSE2D_REPROJECTEDKEYPOINT2D.fields_by_name['point'].message_type = _VECTOR2F
 _REPROJECTEDPOSE2D_REPROJECTEDKEYPOINT2D.containing_type = _REPROJECTEDPOSE2D
 _REPROJECTEDPOSE2D.fields_by_name['keypoints'].message_type = _REPROJECTEDPOSE2D_REPROJECTEDKEYPOINT2D
-_POSE3D_KEYPOINT3D.fields_by_name['point'].message_type = _POINT3D
+_POSE3D_KEYPOINT3D.fields_by_name['point'].message_type = _VECTOR3F
+_POSE3D_KEYPOINT3D.fields_by_name['std'].message_type = _VECTOR3F
 _POSE3D_KEYPOINT3D.containing_type = _POSE3D
 _POSE3D.fields_by_name['keypoints'].message_type = _POSE3D_KEYPOINT3D
 _FRAME.fields_by_name['poses'].message_type = _POSE2D
+_FRAME3D.fields_by_name['poses'].message_type = _POSE3D
 _PROCESSEDVIDEO.fields_by_name['frames'].message_type = _FRAME
 _ROOM.fields_by_name['processed_videos'].message_type = _PROCESSEDVIDEO
-_VIDEO3D.fields_by_name['poses'].message_type = _POSE3D
-DESCRIPTOR.message_types_by_name['Point2D'] = _POINT2D
-DESCRIPTOR.message_types_by_name['Point3D'] = _POINT3D
+_PROCESSEDVIDEO3D.fields_by_name['frames'].message_type = _FRAME3D
+DESCRIPTOR.message_types_by_name['Vector2f'] = _VECTOR2F
+DESCRIPTOR.message_types_by_name['Vector3f'] = _VECTOR3F
 DESCRIPTOR.message_types_by_name['Pose2D'] = _POSE2D
 DESCRIPTOR.message_types_by_name['ReprojectedPose2D'] = _REPROJECTEDPOSE2D
 DESCRIPTOR.message_types_by_name['Pose3D'] = _POSE3D
 DESCRIPTOR.message_types_by_name['Frame'] = _FRAME
+DESCRIPTOR.message_types_by_name['Frame3D'] = _FRAME3D
 DESCRIPTOR.message_types_by_name['ProcessedVideo'] = _PROCESSEDVIDEO
 DESCRIPTOR.message_types_by_name['Room'] = _ROOM
-DESCRIPTOR.message_types_by_name['Video3D'] = _VIDEO3D
+DESCRIPTOR.message_types_by_name['ProcessedVideo3D'] = _PROCESSEDVIDEO3D
 DESCRIPTOR.message_types_by_name['Image'] = _IMAGE
 DESCRIPTOR.message_types_by_name['File'] = _FILE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-Point2D = _reflection.GeneratedProtocolMessageType('Point2D', (_message.Message,), dict(
-  DESCRIPTOR = _POINT2D,
+Vector2f = _reflection.GeneratedProtocolMessageType('Vector2f', (_message.Message,), dict(
+  DESCRIPTOR = _VECTOR2F,
   __module__ = 'suppose_pb2'
-  # @@protoc_insertion_point(class_scope:suppose.Point2D)
+  # @@protoc_insertion_point(class_scope:suppose.Vector2f)
   ))
-_sym_db.RegisterMessage(Point2D)
+_sym_db.RegisterMessage(Vector2f)
 
-Point3D = _reflection.GeneratedProtocolMessageType('Point3D', (_message.Message,), dict(
-  DESCRIPTOR = _POINT3D,
+Vector3f = _reflection.GeneratedProtocolMessageType('Vector3f', (_message.Message,), dict(
+  DESCRIPTOR = _VECTOR3F,
   __module__ = 'suppose_pb2'
-  # @@protoc_insertion_point(class_scope:suppose.Point3D)
+  # @@protoc_insertion_point(class_scope:suppose.Vector3f)
   ))
-_sym_db.RegisterMessage(Point3D)
+_sym_db.RegisterMessage(Vector3f)
 
 Pose2D = _reflection.GeneratedProtocolMessageType('Pose2D', (_message.Message,), dict(
 
@@ -659,6 +707,13 @@ Frame = _reflection.GeneratedProtocolMessageType('Frame', (_message.Message,), d
   ))
 _sym_db.RegisterMessage(Frame)
 
+Frame3D = _reflection.GeneratedProtocolMessageType('Frame3D', (_message.Message,), dict(
+  DESCRIPTOR = _FRAME3D,
+  __module__ = 'suppose_pb2'
+  # @@protoc_insertion_point(class_scope:suppose.Frame3D)
+  ))
+_sym_db.RegisterMessage(Frame3D)
+
 ProcessedVideo = _reflection.GeneratedProtocolMessageType('ProcessedVideo', (_message.Message,), dict(
   DESCRIPTOR = _PROCESSEDVIDEO,
   __module__ = 'suppose_pb2'
@@ -673,12 +728,12 @@ Room = _reflection.GeneratedProtocolMessageType('Room', (_message.Message,), dic
   ))
 _sym_db.RegisterMessage(Room)
 
-Video3D = _reflection.GeneratedProtocolMessageType('Video3D', (_message.Message,), dict(
-  DESCRIPTOR = _VIDEO3D,
+ProcessedVideo3D = _reflection.GeneratedProtocolMessageType('ProcessedVideo3D', (_message.Message,), dict(
+  DESCRIPTOR = _PROCESSEDVIDEO3D,
   __module__ = 'suppose_pb2'
-  # @@protoc_insertion_point(class_scope:suppose.Video3D)
+  # @@protoc_insertion_point(class_scope:suppose.ProcessedVideo3D)
   ))
-_sym_db.RegisterMessage(Video3D)
+_sym_db.RegisterMessage(ProcessedVideo3D)
 
 Image = _reflection.GeneratedProtocolMessageType('Image', (_message.Message,), dict(
   DESCRIPTOR = _IMAGE,
@@ -702,8 +757,8 @@ _POSEEXTRACTOR = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=898,
-  serialized_end=1070,
+  serialized_start=1009,
+  serialized_end=1181,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetPose',
