@@ -151,7 +151,6 @@ def make_ProcessedVideo(draw):
 
 @given(make_ProcessedVideo())
 def test_ProcessedVideo_to_from_dict(pv):
-    #print(pv)
     d = pv.to_dict()
     pv2 = ProcessedVideo.from_dict(d)
     assert pv == pv2

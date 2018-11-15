@@ -50,31 +50,17 @@ def human_to_pose2d(human, frame_width, frame_height):
     body_parts = human.body_parts
     pose2d = proto.Pose2D()
     for idx in range(MAX_NUM_BODY_PARTS):
+        keypoint = proto.Keypoint2D()
         try:
             body_part = body_parts[idx]
         except KeyError:
-            continue
-        keypoint = proto.Keypoint2D()
-        keypoint.point.x = body_part.x * frame_width
-        keypoint.point.y = body_part.y * frame_height
-        keypoint.score = body_part.score
+            pass
+        else:
+            keypoint.point.x = body_part.x * frame_width
+            keypoint.point.y = body_part.y * frame_height
+            keypoint.score = body_part.score
         pose2d.keypoints.append(keypoint)
     return pose2d
-
-
-
-#@timing
-#def tfposes_to_ProcessedVideo(poses, timestamps, frame_width, frame_height, input_file, model_name):
-#    video = suppose_pb2.ProcessedVideo()
-#    video.width = frame_width
-#    video.height = frame_height
-#    video.file = input_file
-#    video.model = model_name
-#    for timestamp, pose in zip(timestamps, poses):
-#        frame = video.frames.add()
-#        frame.timestamp = timestamp.timestamp()
-#        humans_to_Frame(frame, pose, frame_width, frame_height)
-#    return video
 
 
 def parse_datetime(a, format):
