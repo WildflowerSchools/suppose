@@ -6,6 +6,7 @@ import attr
 import cattr
 import numpy as np
 from suppose import suppose_pb2
+import pandas as pd
 
 
 def load_protobuf(file, pb_cls):
@@ -120,6 +121,9 @@ class Vector2f:
     x: float = attr.ib(default=0)
     y: float = attr.ib(default=0)
 
+    def to_pandas(self):
+        return pd.Series(self.to_dict())
+
 
 @protonic(suppose_pb2.Pose2D.Keypoint2D)
 @attr.s
@@ -127,11 +131,22 @@ class Keypoint2D:
     point: Vector2f = attr.ib(default=attr.Factory(Vector2f), metadata={"type": Vector2f})
     score: float = attr.ib(default=0)
 
+    def to_pandas(self):
+        d = {}
+        ps = self.point.to_pandas()
+        d['point'] = ps
+        d['score'] = pd.Series(self.score, index=['value'])
+        return pd.concat(d)
+
 
 @protonic(suppose_pb2.Pose2D)
 @attr.s
 class Pose2D:
     keypoints: typing.List[Keypoint2D] = attr.ib(default=attr.Factory(list), metadata={"type": Keypoint2D})
+
+    def to_pandas(self):
+        return pd.DataFrame(kp.to_pandas() for kp in self.keypoints)
+
 
 
 @protonic(suppose_pb2.Frame)
@@ -139,6 +154,11 @@ class Pose2D:
 class Frame:
     timestamp: float = attr.ib(default=0)
     poses: typing.List[Pose2D] = attr.ib(default=attr.Factory(list), metadata={"type": Pose2D})
+
+    def to_pandas(self):
+        ps = [p.to_pandas() for p in self.poses]
+        return pd.concat(ps, keys=range(len(ps)), names=['pose', 'keypoint'])
+
 
 
 @protonic(suppose_pb2.ProcessedVideo)
@@ -151,3 +171,17 @@ class ProcessedVideo:
     model: str = attr.ib(default="")
     frames: typing.List[Frame] = attr.ib(default=attr.Factory(list), metadata={"type": Frame})
 
+    def to_pandas(self):
+        frame_dfs = []
+        timestamps = []
+        for frame in self.frames:
+            frame_dfs.append(frame.to_pandas())
+            timestamps.append(frame.timestamp)
+        df = pd.concat(frame_dfs, keys=timestamps, names=['timestamp'])
+        metadata = {}
+        for a in attr.fields(self.__class__):
+            value = getattr(self, a.name)
+            if any(isinstance(value, t) for t in (int, float, str, bytes)):
+                metadata[a.name] = value
+        df._metadata = metadata
+        return df
