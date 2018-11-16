@@ -8,6 +8,10 @@ import numpy as np
 from suppose import suppose_pb2
 import pandas as pd
 
+from cvutilities import camera_utilities
+from cvutilities.common import BODY_PART_CONNECTORS
+import matplotlib.pyplot as plt
+
 
 def load_protobuf(file, pb_cls):
     """
@@ -124,6 +128,9 @@ class Vector2f:
     def to_pandas(self):
         return pd.Series(self.to_dict())
 
+    def to_numpy(self):
+        return np.array([self.x, self.y], dtype=np.float32)
+
 
 @protonic(suppose_pb2.Pose2D.Keypoint2D)
 @attr.s
@@ -138,6 +145,15 @@ class Keypoint2D:
         d['score'] = pd.Series(self.score, index=['value'])
         return pd.concat(d)
 
+    def to_numpy(self):
+        point = self.point.to_numpy()
+        a = np.append(point, self.score).astype(np.float32)     # flatten
+        return a
+
+    @property
+    def is_valid(self):
+        return (self.score != 0) and (not np.isnan(self.score))
+
 
 @protonic(suppose_pb2.Pose2D)
 @attr.s
@@ -146,6 +162,37 @@ class Pose2D:
 
     def to_pandas(self):
         return pd.DataFrame(kp.to_pandas() for kp in self.keypoints)
+
+    def to_numpy(self):
+        return np.array([kp.to_numpy() for kp in self.keypoints])
+
+    @property
+    def valid_keypoints(self):
+        return np.array([kp.to_numpy()[:-1] for kp in self.keypoints if kp.is_valid])
+
+    @property
+    def valid_keypoints_mask(self):
+        return np.array([kp.is_valid for kp in self.keypoints])
+
+    def draw(self):
+        all_points = self.to_numpy()[:, :2]
+        camera_utilities.draw_2d_image_points(self.valid_keypoints)
+        valid_keypoints_mask = self.valid_keypoints_mask
+
+        for body_part_connector in BODY_PART_CONNECTORS:
+            body_part_from_index = body_part_connector[0]
+            body_part_to_index = body_part_connector[1]
+            if valid_keypoints_mask[body_part_from_index] and valid_keypoints_mask[body_part_to_index]:
+                pt1 = [all_points[body_part_from_index, 0], all_points[body_part_to_index, 0]]
+                pt2 = [all_points[body_part_from_index, 1], all_points[body_part_to_index, 1]]
+                plt.plot(pt1, pt2, 'k-', alpha=0.2)
+
+    # Plot a pose onto a chart with the coordinate system of the origin image.
+    # Calls the drawing function above, adds formating, and shows the plot
+    def plot(self, image_size=(1296, 972)):
+        self.draw()
+        camera_utilities.format_2d_image_plot(image_size)
+        plt.show()
 
 
 
@@ -158,6 +205,9 @@ class Frame:
     def to_pandas(self):
         ps = [p.to_pandas() for p in self.poses]
         return pd.concat(ps, keys=range(len(ps)), names=['pose', 'keypoint'])
+
+    def to_numpy(self):
+        return np.array([p.to_numpy() for p in self.poses])
 
 
 
@@ -185,3 +235,6 @@ class ProcessedVideo:
                 metadata[a.name] = value
         df._metadata = metadata
         return df
+
+    def to_numpy(self):
+        return [f.to_numpy() for f in self.frames]
