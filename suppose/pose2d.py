@@ -90,8 +90,8 @@ def extract_poses(input_file, e, model_name, datetime_start):
     time0 = time.time()
     while cap.isOpened():
         # debug
-        if count >= 10:
-            break
+        #if count >= 10:
+        #    break
         offset = cap.get(cv2.CAP_PROP_POS_MSEC)
         ret_val, image = cap.read()
         if not ret_val:

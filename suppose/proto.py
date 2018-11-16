@@ -209,6 +209,13 @@ class Frame:
     def to_numpy(self):
         return np.array([p.to_numpy() for p in self.poses])
 
+    # Plot the poses onto a set of charts, one for each source camera view.
+    def plot(self, image_size=(1296, 972)):
+        for pose in self.poses:
+            pose.draw()
+        camera_utilities.format_2d_image_plot(image_size)
+        plt.show()
+
 
 
 @protonic(suppose_pb2.ProcessedVideo)
