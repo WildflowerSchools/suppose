@@ -7,6 +7,8 @@ REQUIRED_PACKAGES = [
     'pandas >= 0.23.4',
     'tqdm >= 4.26.0, < 5',
     "tf-pose == 0.1.1",
+    "attrs == 18.2.0",
+    "cattrs == 0.9.0"
 ]
 
 DEPENDENCY_LINKS = [
