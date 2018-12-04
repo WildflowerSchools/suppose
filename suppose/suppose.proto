@@ -32,15 +32,17 @@ message ReprojectedPose2D {
 }
 
 message Pose3D {
-    // openpose_utilities Pose3D is used for both 3d recontructed poses, and tracked 3d poses
-    // need to separate those classes so we don't unrelated properties under one class (std and error)
+    enum Type {
+        RECONSTRUCTED = 0;
+        TRACKED = 1;
+    }
     message Keypoint3D {
         Vector3f point = 1;
         Vector3f std = 2;
     }
-    float error = 1;
-    repeated Keypoint3D keypoints = 2;
-    //map<string, Keypoint3D> keypoints = 1;
+    Type type = 1;
+    float error = 2;
+    repeated Keypoint3D keypoints = 3;
 }
 
 message Frame {

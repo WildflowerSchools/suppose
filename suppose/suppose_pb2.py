@@ -19,10 +19,32 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='suppose',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\rsuppose.proto\x12\x07suppose\" \n\x08Vector2f\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\"+\n\x08Vector3f\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\"v\n\x06Pose2D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose2D.Keypoint2D\x1a=\n\nKeypoint2D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector2f\x12\r\n\x05score\x18\x02 \x01(\x02\"\xa2\x01\n\x11ReprojectedPose2D\x12\x43\n\tkeypoints\x18\x01 \x03(\x0b\x32\x30.suppose.ReprojectedPose2D.ReprojectedKeypoint2D\x1aH\n\x15ReprojectedKeypoint2D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector2f\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\"\x96\x01\n\x06Pose3D\x12\r\n\x05\x65rror\x18\x01 \x01(\x02\x12-\n\tkeypoints\x18\x02 \x03(\x0b\x32\x1a.suppose.Pose3D.Keypoint3D\x1aN\n\nKeypoint3D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector3f\x12\x1e\n\x03std\x18\x02 \x01(\x0b\x32\x11.suppose.Vector3f\":\n\x05\x46rame\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose2D\"<\n\x07\x46rame3D\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose3D\"|\n\x0eProcessedVideo\x12\x0e\n\x06\x63\x61mera\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0c\n\x04\x66ile\x18\x04 \x01(\t\x12\r\n\x05model\x18\x05 \x01(\t\x12\x1e\n\x06\x66rames\x18\x06 \x03(\x0b\x32\x0e.suppose.Frame\"G\n\x04Room\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x31\n\x10processed_videos\x18\x02 \x03(\x0b\x32\x17.suppose.ProcessedVideo\"S\n\x10ProcessedVideo3D\x12\x0c\n\x04room\x18\x01 \x01(\t\x12\x0f\n\x07\x63\x61meras\x18\x02 \x03(\t\x12 \n\x06\x66rames\x18\x03 \x03(\x0b\x32\x10.suppose.Frame3D\"#\n\x05Image\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x14\n\x04\x46ile\x12\x0c\n\x04path\x18\x01 \x01(\t2\xac\x01\n\rPoseExtractor\x12+\n\x07GetPose\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00\x12\x33\n\x0bStreamPoses\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00(\x01\x30\x01\x12\x39\n\x14StreamPosesFromVideo\x12\r.suppose.File\x1a\x0e.suppose.Frame\"\x00\x30\x01\x62\x06proto3')
+  serialized_pb=_b('\n\rsuppose.proto\x12\x07suppose\" \n\x08Vector2f\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\"+\n\x08Vector3f\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\"v\n\x06Pose2D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose2D.Keypoint2D\x1a=\n\nKeypoint2D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector2f\x12\r\n\x05score\x18\x02 \x01(\x02\"\xa2\x01\n\x11ReprojectedPose2D\x12\x43\n\tkeypoints\x18\x01 \x03(\x0b\x32\x30.suppose.ReprojectedPose2D.ReprojectedKeypoint2D\x1aH\n\x15ReprojectedKeypoint2D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector2f\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\"\xe2\x01\n\x06Pose3D\x12\"\n\x04type\x18\x01 \x01(\x0e\x32\x14.suppose.Pose3D.Type\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\x12-\n\tkeypoints\x18\x03 \x03(\x0b\x32\x1a.suppose.Pose3D.Keypoint3D\x1aN\n\nKeypoint3D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector3f\x12\x1e\n\x03std\x18\x02 \x01(\x0b\x32\x11.suppose.Vector3f\"&\n\x04Type\x12\x11\n\rRECONSTRUCTED\x10\x00\x12\x0b\n\x07TRACKED\x10\x01\":\n\x05\x46rame\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose2D\"<\n\x07\x46rame3D\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose3D\"|\n\x0eProcessedVideo\x12\x0e\n\x06\x63\x61mera\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0c\n\x04\x66ile\x18\x04 \x01(\t\x12\r\n\x05model\x18\x05 \x01(\t\x12\x1e\n\x06\x66rames\x18\x06 \x03(\x0b\x32\x0e.suppose.Frame\"G\n\x04Room\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x31\n\x10processed_videos\x18\x02 \x03(\x0b\x32\x17.suppose.ProcessedVideo\"S\n\x10ProcessedVideo3D\x12\x0c\n\x04room\x18\x01 \x01(\t\x12\x0f\n\x07\x63\x61meras\x18\x02 \x03(\t\x12 \n\x06\x66rames\x18\x03 \x03(\x0b\x32\x10.suppose.Frame3D\"#\n\x05Image\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x14\n\x04\x46ile\x12\x0c\n\x04path\x18\x01 \x01(\t2\xac\x01\n\rPoseExtractor\x12+\n\x07GetPose\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00\x12\x33\n\x0bStreamPoses\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00(\x01\x30\x01\x12\x39\n\x14StreamPosesFromVideo\x12\r.suppose.File\x1a\x0e.suppose.Frame\"\x00\x30\x01\x62\x06proto3')
 )
 
 
+
+_POSE3D_TYPE = _descriptor.EnumDescriptor(
+  name='Type',
+  full_name='suppose.Pose3D.Type',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='RECONSTRUCTED', index=0, number=0,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='TRACKED', index=1, number=1,
+      serialized_options=None,
+      type=None),
+  ],
+  containing_type=None,
+  serialized_options=None,
+  serialized_start=579,
+  serialized_end=617,
+)
+_sym_db.RegisterEnumDescriptor(_POSE3D_TYPE)
 
 
 _VECTOR2F = _descriptor.Descriptor(
@@ -277,8 +299,8 @@ _POSE3D_KEYPOINT3D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=463,
-  serialized_end=541,
+  serialized_start=499,
+  serialized_end=577,
 )
 
 _POSE3D = _descriptor.Descriptor(
@@ -289,15 +311,22 @@ _POSE3D = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='error', full_name='suppose.Pose3D.error', index=0,
-      number=1, type=2, cpp_type=6, label=1,
+      name='type', full_name='suppose.Pose3D.type', index=0,
+      number=1, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='error', full_name='suppose.Pose3D.error', index=1,
+      number=2, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='keypoints', full_name='suppose.Pose3D.keypoints', index=1,
-      number=2, type=11, cpp_type=10, label=3,
+      name='keypoints', full_name='suppose.Pose3D.keypoints', index=2,
+      number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -307,6 +336,7 @@ _POSE3D = _descriptor.Descriptor(
   ],
   nested_types=[_POSE3D_KEYPOINT3D, ],
   enum_types=[
+    _POSE3D_TYPE,
   ],
   serialized_options=None,
   is_extendable=False,
@@ -315,7 +345,7 @@ _POSE3D = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=391,
-  serialized_end=541,
+  serialized_end=617,
 )
 
 
@@ -352,8 +382,8 @@ _FRAME = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=543,
-  serialized_end=601,
+  serialized_start=619,
+  serialized_end=677,
 )
 
 
@@ -390,8 +420,8 @@ _FRAME3D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=603,
-  serialized_end=663,
+  serialized_start=679,
+  serialized_end=739,
 )
 
 
@@ -456,8 +486,8 @@ _PROCESSEDVIDEO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=665,
-  serialized_end=789,
+  serialized_start=741,
+  serialized_end=865,
 )
 
 
@@ -494,8 +524,8 @@ _ROOM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=791,
-  serialized_end=862,
+  serialized_start=867,
+  serialized_end=938,
 )
 
 
@@ -539,8 +569,8 @@ _PROCESSEDVIDEO3D = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=864,
-  serialized_end=947,
+  serialized_start=940,
+  serialized_end=1023,
 )
 
 
@@ -577,8 +607,8 @@ _IMAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=949,
-  serialized_end=984,
+  serialized_start=1025,
+  serialized_end=1060,
 )
 
 
@@ -608,8 +638,8 @@ _FILE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=986,
-  serialized_end=1006,
+  serialized_start=1062,
+  serialized_end=1082,
 )
 
 _POSE2D_KEYPOINT2D.fields_by_name['point'].message_type = _VECTOR2F
@@ -621,7 +651,9 @@ _REPROJECTEDPOSE2D.fields_by_name['keypoints'].message_type = _REPROJECTEDPOSE2D
 _POSE3D_KEYPOINT3D.fields_by_name['point'].message_type = _VECTOR3F
 _POSE3D_KEYPOINT3D.fields_by_name['std'].message_type = _VECTOR3F
 _POSE3D_KEYPOINT3D.containing_type = _POSE3D
+_POSE3D.fields_by_name['type'].enum_type = _POSE3D_TYPE
 _POSE3D.fields_by_name['keypoints'].message_type = _POSE3D_KEYPOINT3D
+_POSE3D_TYPE.containing_type = _POSE3D
 _FRAME.fields_by_name['poses'].message_type = _POSE2D
 _FRAME3D.fields_by_name['poses'].message_type = _POSE3D
 _PROCESSEDVIDEO.fields_by_name['frames'].message_type = _FRAME
@@ -757,8 +789,8 @@ _POSEEXTRACTOR = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=1009,
-  serialized_end=1181,
+  serialized_start=1085,
+  serialized_end=1257,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetPose',

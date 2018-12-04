@@ -8,29 +8,14 @@ import networkx as nx
 import math
 from tqdm import tqdm
 #from palettable.cartocolors.qualitative import Pastel_10 as COLORS
-from .common import timing
-from .camera import load_calibration
+from suppose.common import timing
+from suppose.camera import load_calibration
 
 
 import pandas as pd
 
 
 log = Logger('pose3d')
-
-
-def get_projection_matrix(calibration):
-    """
-    Calculates projection matrix from camera calibration.
-
-    :param calibration: camera calibration dictionary
-    :return: projection matrix
-    """
-    R = cv2.Rodrigues(calibration['rotationVector'])[0]
-    t = calibration['translationVector']
-    Rt = np.concatenate([R, t], axis=1)
-    C = calibration['cameraMatrix']
-    P = np.matmul(C, Rt)
-    return P
 
 
 def undistort_points(pts, calibration):
@@ -110,7 +95,8 @@ def reconstruct3d(file, camera_calibration, output, debug_output):
     for c in camera_calibration:
         name, camera_file = c.split(',')
         cameras[name]['calibration'] = load_calibration(camera_file)
-        cameras[name]['projection'] = get_projection_matrix(cameras[name]['calibration'])
+
+        #cameras[name]['projection'] = get_projection_matrix(cameras[name]['calibration'])
 
     df = pd.read_pickle(file)
     camera_names = sorted(list(cameras.keys()))

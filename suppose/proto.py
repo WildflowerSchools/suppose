@@ -8,9 +8,17 @@ import numpy as np
 from suppose import suppose_pb2
 import pandas as pd
 
+from suppose.pose3d import undistort_points, undistort_2d_poses, triangulate, project_3d_to_2d, rmse
+
 from cvutilities import camera_utilities
 from cvutilities.common import BODY_PART_CONNECTORS
 import matplotlib.pyplot as plt
+
+import typing
+from typing import TypeVar, Type
+
+T = TypeVar('T', bound='Parent')
+
 
 
 def load_protobuf(file, pb_cls):
@@ -166,6 +174,25 @@ class Pose2D:
     def to_numpy(self):
         return np.array([kp.to_numpy() for kp in self.keypoints])
 
+    @classmethod
+    def from_numpy(cls, pts):
+        obj = cls()
+        for pt in pts:
+            keypoint = Keypoint2D(point=Vector2f(x=pt[0], y=pt[1]))
+            if len(pt) >= 3:
+                keypoint.score = pt[2]
+            elif np.isnan(pt[0]):
+                # TODO: not liking all this finagling to handle 2d poses from dnn versus reprojection
+                keypoint.score = np.nan
+            else:
+                keypoint.score = 1
+            obj.keypoints.append(keypoint)
+        return obj
+
+    @property
+    def points_array(self):
+        return np.array([kp.to_numpy()[:-1] for kp in self.keypoints])
+
     @property
     def valid_keypoints(self):
         return np.array([kp.to_numpy()[:-1] for kp in self.keypoints if kp.is_valid])
@@ -245,3 +272,100 @@ class ProcessedVideo:
 
     def to_numpy(self):
         return [f.to_numpy() for f in self.frames]
+
+@protonic(suppose_pb2.Vector3f)
+@attr.s
+class Vector3f:
+    x: float = attr.ib(default=0)
+    y: float = attr.ib(default=0)
+    z: float = attr.ib(default=0)
+
+    def to_pandas(self):
+        return pd.Series(self.to_dict())
+
+    def to_numpy(self):
+        return np.array([self.x, self.y, self.z], dtype=np.float32)
+
+
+@protonic(suppose_pb2.Pose3D.Keypoint3D)
+@attr.s
+class Keypoint3D:
+    point: Vector3f = attr.ib(default=attr.Factory(Vector3f), metadata={"type": Vector3f})
+    std: Vector3f = attr.ib(default=attr.Factory(Vector3f), metadata={"type": Vector3f})
+
+    def to_pandas(self):
+        d = {}
+        d['point'] = self.point.to_pandas()
+        d['score'] = self.std.to_pandas()
+        return pd.concat(d)
+
+    def to_numpy(self):
+        point = self.point.to_numpy()
+        #a = np.append(point, self.score).astype(np.float32)     # flatten
+        return point
+
+    @property
+    def is_valid(self):
+        return not np.isnan(self.point.x)
+
+
+@protonic(suppose_pb2.Pose3D)
+@attr.s
+class Pose3D:
+    type: int = attr.ib(default=0)
+    error: float = attr.ib(default=0)
+    keypoints: typing.List[Keypoint3D] = attr.ib(default=attr.Factory(list), metadata={"type": Keypoint3D})
+
+    def to_pandas(self):
+        return pd.DataFrame(kp.to_pandas() for kp in self.keypoints)
+
+    def to_numpy(self):
+        return np.array([kp.to_numpy() for kp in self.keypoints])
+
+    @property
+    def valid_keypoints(self):
+        return np.array([kp.to_numpy() for kp in self.keypoints if kp.is_valid])
+
+    @property
+    def valid_keypoints_mask(self):
+        return np.array([kp.is_valid for kp in self.keypoints])
+
+    @classmethod
+    def from_2d(cls: Type[T], a: Pose2D, b: Pose2D, camera_calibration1: typing.Mapping, camera_calibration2: typing.Mapping) -> T:
+        valid_a = a.valid_keypoints_mask
+        valid_b = b.valid_keypoints_mask
+        p1_orig = a.points_array
+        p2_orig = b.points_array
+        pts_present = np.logical_and(valid_a, valid_b)  # keypoints exist in both p1 and p2
+        p1_orig_shared = p1_orig[pts_present]
+        p2_orig_shared = p2_orig[pts_present]
+
+        p1 = undistort_points(p1_orig_shared, camera_calibration1)
+        p2 = undistort_points(p2_orig_shared, camera_calibration2)
+
+        projection_matrix1 = camera_calibration1['projection']
+        projection_matrix2 = camera_calibration2['projection']
+        pts3d = triangulate(p1, p2, projection_matrix1, projection_matrix2)
+
+        p1_reprojected = project_3d_to_2d(pts3d, camera_calibration1)
+        p2_reprojected = project_3d_to_2d(pts3d, camera_calibration2)
+        p1_rmse = rmse(p1_orig_shared, p1_reprojected)
+        p2_rmse = rmse(p2_orig_shared, p2_reprojected)
+        if np.isnan(p1_rmse) or np.isnan(p2_rmse):
+            # should just continue the loop and ignore this edge
+            reprojection_error = np.nan
+        else:
+            reprojection_error = max(p1_rmse, p2_rmse)
+            # should just reject 3d poses errors > threshold
+
+        keypoints_3d = np.full([len(pts_present)]+list(pts3d.shape[1:]), np.nan)
+        keypoints_3d[pts_present] = pts3d
+
+        obj = cls(error=reprojection_error)
+        for x, y ,z in keypoints_3d:
+            obj.keypoints.append(Keypoint3D(point=Vector3f(x=x, y=y, z=z)))
+        return obj
+
+    def project_2d(self, camera_calibration: typing.Mapping) -> Pose2D:
+        pts_reprojected = project_3d_to_2d(self.to_numpy(), camera_calibration)
+        return Pose2D.from_numpy(pts_reprojected)
