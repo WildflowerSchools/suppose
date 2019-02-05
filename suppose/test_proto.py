@@ -222,4 +222,4 @@ def test_pose3dgraph_reconstruct():
 
     graph = Pose3DGraph.reconstruct(frames, cameras)
     frame3d = Frame3D.from_graph(graph)
-    import ipdb;ipdb.set_trace()
+    assert len(frame3d.poses) == 4
