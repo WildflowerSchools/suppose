@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='suppose',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\rsuppose.proto\x12\x07suppose\" \n\x08Vector2f\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\"+\n\x08Vector3f\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\"v\n\x06Pose2D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose2D.Keypoint2D\x1a=\n\nKeypoint2D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector2f\x12\r\n\x05score\x18\x02 \x01(\x02\"\xa2\x01\n\x11ReprojectedPose2D\x12\x43\n\tkeypoints\x18\x01 \x03(\x0b\x32\x30.suppose.ReprojectedPose2D.ReprojectedKeypoint2D\x1aH\n\x15ReprojectedKeypoint2D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector2f\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\"\xe2\x01\n\x06Pose3D\x12\"\n\x04type\x18\x01 \x01(\x0e\x32\x14.suppose.Pose3D.Type\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\x12-\n\tkeypoints\x18\x03 \x03(\x0b\x32\x1a.suppose.Pose3D.Keypoint3D\x1aN\n\nKeypoint3D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector3f\x12\x1e\n\x03std\x18\x02 \x01(\x0b\x32\x11.suppose.Vector3f\"&\n\x04Type\x12\x11\n\rRECONSTRUCTED\x10\x00\x12\x0b\n\x07TRACKED\x10\x01\":\n\x05\x46rame\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose2D\"<\n\x07\x46rame3D\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose3D\"|\n\x0eProcessedVideo\x12\x0e\n\x06\x63\x61mera\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0c\n\x04\x66ile\x18\x04 \x01(\t\x12\r\n\x05model\x18\x05 \x01(\t\x12\x1e\n\x06\x66rames\x18\x06 \x03(\x0b\x32\x0e.suppose.Frame\"G\n\x04Room\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x31\n\x10processed_videos\x18\x02 \x03(\x0b\x32\x17.suppose.ProcessedVideo\"S\n\x10ProcessedVideo3D\x12\x0c\n\x04room\x18\x01 \x01(\t\x12\x0f\n\x07\x63\x61meras\x18\x02 \x03(\t\x12 \n\x06\x66rames\x18\x03 \x03(\x0b\x32\x10.suppose.Frame3D\"#\n\x05Image\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x14\n\x04\x46ile\x12\x0c\n\x04path\x18\x01 \x01(\t2\xac\x01\n\rPoseExtractor\x12+\n\x07GetPose\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00\x12\x33\n\x0bStreamPoses\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00(\x01\x30\x01\x12\x39\n\x14StreamPosesFromVideo\x12\r.suppose.File\x1a\x0e.suppose.Frame\"\x00\x30\x01\x62\x06proto3')
+  serialized_pb=_b('\n\rsuppose.proto\x12\x07suppose\" \n\x08Vector2f\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\"+\n\x08Vector3f\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\"v\n\x06Pose2D\x12-\n\tkeypoints\x18\x01 \x03(\x0b\x32\x1a.suppose.Pose2D.Keypoint2D\x1a=\n\nKeypoint2D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector2f\x12\r\n\x05score\x18\x02 \x01(\x02\"\xa2\x01\n\x11ReprojectedPose2D\x12\x43\n\tkeypoints\x18\x01 \x03(\x0b\x32\x30.suppose.ReprojectedPose2D.ReprojectedKeypoint2D\x1aH\n\x15ReprojectedKeypoint2D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector2f\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\"\xe2\x01\n\x06Pose3D\x12\"\n\x04type\x18\x01 \x01(\x0e\x32\x14.suppose.Pose3D.Type\x12\r\n\x05\x65rror\x18\x02 \x01(\x02\x12-\n\tkeypoints\x18\x03 \x03(\x0b\x32\x1a.suppose.Pose3D.Keypoint3D\x1aN\n\nKeypoint3D\x12 \n\x05point\x18\x01 \x01(\x0b\x32\x11.suppose.Vector3f\x12\x1e\n\x03std\x18\x02 \x01(\x0b\x32\x11.suppose.Vector3f\"&\n\x04Type\x12\x11\n\rRECONSTRUCTED\x10\x00\x12\x0b\n\x07TRACKED\x10\x01\":\n\x05\x46rame\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose2D\"<\n\x07\x46rame3D\x12\x11\n\ttimestamp\x18\x01 \x01(\x01\x12\x1e\n\x05poses\x18\x02 \x03(\x0b\x32\x0f.suppose.Pose3D\"|\n\x0eProcessedVideo\x12\x0e\n\x06\x63\x61mera\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0c\n\x04\x66ile\x18\x04 \x01(\t\x12\r\n\x05model\x18\x05 \x01(\t\x12\x1e\n\x06\x66rames\x18\x06 \x03(\x0b\x32\x0e.suppose.Frame\"G\n\x04Room\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x31\n\x10processed_videos\x18\x02 \x03(\x0b\x32\x17.suppose.ProcessedVideo\"S\n\x10ProcessedVideo3D\x12\x0c\n\x04room\x18\x01 \x01(\t\x12\x0f\n\x07\x63\x61meras\x18\x02 \x03(\t\x12 \n\x06\x66rames\x18\x03 \x03(\x0b\x32\x10.suppose.Frame3D\"#\n\x05Image\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x14\n\x04\x46ile\x12\x0c\n\x04path\x18\x01 \x01(\t\"\xa1\x02\n\x07NXGraph\x12\x10\n\x08\x64irected\x18\x01 \x01(\x08\x12\x12\n\nmultigraph\x18\x02 \x01(\x08\x12*\n\x05graph\x18\x03 \x03(\x0b\x32\x1b.suppose.NXGraph.GraphEntry\x12$\n\x05nodes\x18\x04 \x03(\x0b\x32\x15.suppose.NXGraph.Node\x12$\n\x05links\x18\x05 \x03(\x0b\x32\x15.suppose.NXGraph.Link\x1a\x12\n\x04Node\x12\n\n\x02id\x18\x01 \x01(\t\x1a\x36\n\x04Link\x12\x0e\n\x06source\x18\x01 \x01(\t\x12\x0e\n\x06target\x18\x02 \x01(\t\x12\x0e\n\x06weight\x18\x03 \x01(\x02\x1a,\n\nGraphEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x32\xac\x01\n\rPoseExtractor\x12+\n\x07GetPose\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00\x12\x33\n\x0bStreamPoses\x12\x0e.suppose.Image\x1a\x0e.suppose.Frame\"\x00(\x01\x30\x01\x12\x39\n\x14StreamPosesFromVideo\x12\r.suppose.File\x1a\x0e.suppose.Frame\"\x00\x30\x01\x62\x06proto3')
 )
 
 
@@ -642,6 +642,176 @@ _FILE = _descriptor.Descriptor(
   serialized_end=1082,
 )
 
+
+_NXGRAPH_NODE = _descriptor.Descriptor(
+  name='Node',
+  full_name='suppose.NXGraph.Node',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='id', full_name='suppose.NXGraph.Node.id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1254,
+  serialized_end=1272,
+)
+
+_NXGRAPH_LINK = _descriptor.Descriptor(
+  name='Link',
+  full_name='suppose.NXGraph.Link',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='source', full_name='suppose.NXGraph.Link.source', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='target', full_name='suppose.NXGraph.Link.target', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='weight', full_name='suppose.NXGraph.Link.weight', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1274,
+  serialized_end=1328,
+)
+
+_NXGRAPH_GRAPHENTRY = _descriptor.Descriptor(
+  name='GraphEntry',
+  full_name='suppose.NXGraph.GraphEntry',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='suppose.NXGraph.GraphEntry.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='suppose.NXGraph.GraphEntry.value', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=_b('8\001'),
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1330,
+  serialized_end=1374,
+)
+
+_NXGRAPH = _descriptor.Descriptor(
+  name='NXGraph',
+  full_name='suppose.NXGraph',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='directed', full_name='suppose.NXGraph.directed', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='multigraph', full_name='suppose.NXGraph.multigraph', index=1,
+      number=2, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='graph', full_name='suppose.NXGraph.graph', index=2,
+      number=3, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='nodes', full_name='suppose.NXGraph.nodes', index=3,
+      number=4, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='links', full_name='suppose.NXGraph.links', index=4,
+      number=5, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[_NXGRAPH_NODE, _NXGRAPH_LINK, _NXGRAPH_GRAPHENTRY, ],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1085,
+  serialized_end=1374,
+)
+
 _POSE2D_KEYPOINT2D.fields_by_name['point'].message_type = _VECTOR2F
 _POSE2D_KEYPOINT2D.containing_type = _POSE2D
 _POSE2D.fields_by_name['keypoints'].message_type = _POSE2D_KEYPOINT2D
@@ -659,6 +829,12 @@ _FRAME3D.fields_by_name['poses'].message_type = _POSE3D
 _PROCESSEDVIDEO.fields_by_name['frames'].message_type = _FRAME
 _ROOM.fields_by_name['processed_videos'].message_type = _PROCESSEDVIDEO
 _PROCESSEDVIDEO3D.fields_by_name['frames'].message_type = _FRAME3D
+_NXGRAPH_NODE.containing_type = _NXGRAPH
+_NXGRAPH_LINK.containing_type = _NXGRAPH
+_NXGRAPH_GRAPHENTRY.containing_type = _NXGRAPH
+_NXGRAPH.fields_by_name['graph'].message_type = _NXGRAPH_GRAPHENTRY
+_NXGRAPH.fields_by_name['nodes'].message_type = _NXGRAPH_NODE
+_NXGRAPH.fields_by_name['links'].message_type = _NXGRAPH_LINK
 DESCRIPTOR.message_types_by_name['Vector2f'] = _VECTOR2F
 DESCRIPTOR.message_types_by_name['Vector3f'] = _VECTOR3F
 DESCRIPTOR.message_types_by_name['Pose2D'] = _POSE2D
@@ -671,6 +847,7 @@ DESCRIPTOR.message_types_by_name['Room'] = _ROOM
 DESCRIPTOR.message_types_by_name['ProcessedVideo3D'] = _PROCESSEDVIDEO3D
 DESCRIPTOR.message_types_by_name['Image'] = _IMAGE
 DESCRIPTOR.message_types_by_name['File'] = _FILE
+DESCRIPTOR.message_types_by_name['NXGraph'] = _NXGRAPH
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Vector2f = _reflection.GeneratedProtocolMessageType('Vector2f', (_message.Message,), dict(
@@ -781,7 +958,39 @@ File = _reflection.GeneratedProtocolMessageType('File', (_message.Message,), dic
   ))
 _sym_db.RegisterMessage(File)
 
+NXGraph = _reflection.GeneratedProtocolMessageType('NXGraph', (_message.Message,), dict(
 
+  Node = _reflection.GeneratedProtocolMessageType('Node', (_message.Message,), dict(
+    DESCRIPTOR = _NXGRAPH_NODE,
+    __module__ = 'suppose_pb2'
+    # @@protoc_insertion_point(class_scope:suppose.NXGraph.Node)
+    ))
+  ,
+
+  Link = _reflection.GeneratedProtocolMessageType('Link', (_message.Message,), dict(
+    DESCRIPTOR = _NXGRAPH_LINK,
+    __module__ = 'suppose_pb2'
+    # @@protoc_insertion_point(class_scope:suppose.NXGraph.Link)
+    ))
+  ,
+
+  GraphEntry = _reflection.GeneratedProtocolMessageType('GraphEntry', (_message.Message,), dict(
+    DESCRIPTOR = _NXGRAPH_GRAPHENTRY,
+    __module__ = 'suppose_pb2'
+    # @@protoc_insertion_point(class_scope:suppose.NXGraph.GraphEntry)
+    ))
+  ,
+  DESCRIPTOR = _NXGRAPH,
+  __module__ = 'suppose_pb2'
+  # @@protoc_insertion_point(class_scope:suppose.NXGraph)
+  ))
+_sym_db.RegisterMessage(NXGraph)
+_sym_db.RegisterMessage(NXGraph.Node)
+_sym_db.RegisterMessage(NXGraph.Link)
+_sym_db.RegisterMessage(NXGraph.GraphEntry)
+
+
+_NXGRAPH_GRAPHENTRY._options = None
 
 _POSEEXTRACTOR = _descriptor.ServiceDescriptor(
   name='PoseExtractor',
@@ -789,8 +998,8 @@ _POSEEXTRACTOR = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=1085,
-  serialized_end=1257,
+  serialized_start=1377,
+  serialized_end=1549,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetPose',

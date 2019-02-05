@@ -112,7 +112,7 @@ def extract_poses(input_file, e, model_name, datetime_start):
     log.info("{} s".format(time1 - time0))
     cap.release()
     pbar.close()
-    log.info("Converting to protobuf")
+    #log.info("Converting to protobuf")
     return processed_video
 
 

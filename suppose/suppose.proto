@@ -89,3 +89,35 @@ service PoseExtractor {
     rpc StreamPoses(stream Image) returns (stream Frame) {}
     rpc StreamPosesFromVideo(File) returns (stream Frame) {}
 }
+
+// {'directed': False,
+// 'multigraph': False,
+// 'graph': {},
+// 'nodes': [{'id': 'a'},
+//  {'id': 'b'},
+//  {'id': 'c'},
+//  {'id': 'd'},
+//  {'id': 'e'},
+//  {'id': 'f'}],
+// 'links': [{'weight': 0.6, 'source': 'a', 'target': 'b'},
+//  {'weight': 0.2, 'source': 'a', 'target': 'c'},
+//  {'weight': 0.3, 'source': 'a', 'target': 'd'},
+//  {'weight': 0.1, 'source': 'c', 'target': 'd'},
+//  {'weight': 0.7, 'source': 'c', 'target': 'e'},
+//  {'weight': 0.9, 'source': 'c', 'target': 'f'}]}
+message NXGraph {
+    message Node {
+        string id = 1;
+    }
+    message Link {
+        string source = 1;
+        string target = 2;
+        float weight = 3;
+        //map<string, Any> data = 3;
+    }
+    bool directed = 1;
+    bool multigraph = 2;
+    map<string, string> graph = 3;
+    repeated Node nodes = 4;
+    repeated Link links = 5;
+}

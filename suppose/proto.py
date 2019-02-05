@@ -2,17 +2,22 @@
 Protobuf-related utilities for suppose.proto
 """
 import typing
+import itertools
 import attr
 import cattr
 import numpy as np
 from suppose import suppose_pb2
 import pandas as pd
+import networkx as nx
 
 from suppose.pose3d import undistort_points, undistort_2d_poses, triangulate, project_3d_to_2d, rmse
 
 from cvutilities import camera_utilities
-from cvutilities.common import BODY_PART_CONNECTORS
+from cvutilities.common import BODY_PART_CONNECTORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES
 import matplotlib.pyplot as plt
+
+from google.protobuf import json_format
+from networkx import json_graph
 
 import typing
 from typing import TypeVar, Type
@@ -77,7 +82,10 @@ def protonic(protobuf_cls):
                     if a.default.factory == list:
                         things = []
                         for thing in value:
-                            things.append(atype.from_proto(thing))
+                            if any(isinstance(thing, t) for t in (int, float, str, bytes)):
+                                things.append(thing)
+                            else:
+                                things.append(atype.from_proto(thing))
                         value = things
                     else:
                         value = atype.from_proto(value)
@@ -221,6 +229,11 @@ class Pose2D:
         camera_utilities.format_2d_image_plot(image_size)
         plt.show()
 
+    def points(self):
+        return [kp.point for kp in self.keypoints]
+
+    def confidence_scores(self):
+        return [kp.score for kp in self.keypoints]
 
 
 @protonic(suppose_pb2.Frame)
@@ -243,6 +256,16 @@ class Frame:
         camera_utilities.format_2d_image_plot(image_size)
         plt.show()
 
+    # cvutilities
+    def num_poses(self):
+        return len(self.poses)
+
+    # cvutilities
+    def keypoints(self):
+        return [p.points() for p in self.poses]
+
+    def confidence_scores(self):
+        return [p.confidence_scores() for p in self.poses]
 
 
 @protonic(suppose_pb2.ProcessedVideo)
@@ -369,3 +392,232 @@ class Pose3D:
     def project_2d(self, camera_calibration: typing.Mapping) -> Pose2D:
         pts_reprojected = project_3d_to_2d(self.to_numpy(), camera_calibration)
         return Pose2D.from_numpy(pts_reprojected)
+
+    def project_2d(self, camera_calibration: typing.Mapping) -> Pose2D:
+        return self.project_2d(camera_calibration)
+
+
+    def anchor_points(self):
+        keypoints = self.to_numpy()
+        if self.valid_keypoints_mask[NECK_INDEX]:
+            return keypoints[NECK_INDEX]
+        if np.all(self.valid_keypoints_mask[SHOULDER_INDICES]):
+            return np.mean(keypoints[SHOULDER_INDICES], axis = 0)
+        if np.any(self.valid_keypoints_mask[HEAD_AND_TORSO_INDICES]):
+            head_and_torso_keypoints = np.full(18, False)
+            head_and_torso_keypoints[HEAD_AND_TORSO_INDICES] = True
+            valid_head_and_torso_keypoints = np.logical_and(
+                head_and_torso_keypoints,
+                self.valid_keypoints_mask)
+            return np.mean(keypoints[valid_head_and_torso_keypoints], axis=0)
+        return np.mean(keypoints[self.valid_keypoints_mask], axis = 0)
+
+
+@protonic(suppose_pb2.Frame3D)
+@attr.s
+class Frame3D:
+    timestamp: float = attr.ib(default=0)
+    poses: typing.List[Pose3D] = attr.ib(default=attr.Factory(list), metadata={"type": Pose3D})
+
+    def to_pandas(self):
+        ps = [p.to_pandas() for p in self.poses]
+        return pd.concat(ps, keys=range(len(ps)), names=['pose', 'keypoint'])
+
+    def to_numpy(self):
+        return np.array([p.to_numpy() for p in self.poses])
+
+    def num_poses(self):
+        return len(self.poses)
+
+    def keypoints(self):
+        return [p.to_numpy() for p in self.poses]
+
+    @classmethod
+    def from_graph(cls, graph, timestamp=0):
+        poses = []
+        for src, tgt, data in graph.graph.edges(data=True):
+            poses.append(data['pose'])
+        return cls(poses=poses, timestamp=timestamp)
+
+
+
+
+
+    # Plot the poses onto a set of charts, one for each source camera view.
+    #def plot(self, image_size=(1296, 972)):
+    #    for pose in self.poses:
+    #        pose.draw()
+    #    camera_utilities.format_2d_image_plot(image_size)
+    #    plt.show()
+
+@protonic(suppose_pb2.ProcessedVideo3D)
+@attr.s
+class ProcessedVideo3D:
+    #camera: str = attr.ib(default="")
+    #width: int = attr.ib(default=0)
+    #height: int = attr.ib(default=0)
+    #file: str = attr.ib(default="")
+    #model: str = attr.ib(default="")
+    room: str = attr.ib(default="")
+    cameras: typing.List[str] = attr.ib(default=attr.Factory(list), metadata={"type": str})
+    frames: typing.List[Frame] = attr.ib(default=attr.Factory(list), metadata={"type": Frame3D})
+
+    def to_pandas(self):
+        frame_dfs = []
+        timestamps = []
+        for frame in self.frames:
+            frame_dfs.append(frame.to_pandas())
+            timestamps.append(frame.timestamp)
+        df = pd.concat(frame_dfs, keys=timestamps, names=['timestamp'])
+        metadata = {}
+        for a in attr.fields(self.__class__):
+            value = getattr(self, a.name)
+            if any(isinstance(value, t) for t in (int, float, str, bytes)):
+                metadata[a.name] = value
+        df._metadata = metadata
+        return df
+
+    def to_numpy(self):
+        return [f.to_numpy() for f in self.frames]
+
+
+#@attr.s
+#@protonic(suppose_pb2.NXGraph.Link)
+#class NXGraphLink:
+#    source = attr.ib()
+#    target = attr.ib()
+#    weight = attr.ib()
+
+@attr.s
+class NXGraph:
+    graph = attr.ib()
+
+    def to_proto(self):
+        data = json_graph.node_link_data(self.graph)
+        msg = suppose_pb2.NXGraph()
+        pb = json_format.ParseDict(data, msg)
+        return pb
+
+    def to_proto_file(self, file):
+        pb = self.to_proto()
+        write_protobuf(file, pb)
+
+    @classmethod
+    def from_proto_file(cls, file):
+        pb = load_protobuf(file, suppose_pb2.NXGraph)
+        return cls.from_proto(pb)
+
+    @classmethod
+    def from_proto(cls, pb):
+        d = json_format.MessageToDict(pb, including_default_value_fields=True)
+        G = json_graph.node_link_graph(d)
+        return cls(graph=G)
+
+@attr.s
+class Pose3DGraph:
+    # TODO: move ot Frame3D?
+    #num_cameras_source_images = attr.ib()
+    #num_2d_poses_source_images = attr.ib()
+    #source_cameras = attr.ib()
+    #source_images = attr.ib()
+    graph: typing.Any = attr.ib(metadata={"type": NXGraph})
+    cameras: typing.Mapping = attr.ib()
+    #state: typing.Any = attr.ib(default="")
+    frames: typing.List[Frame] = attr.ib(default=attr.Factory(list), metadata={"type": Frame})
+
+    @classmethod
+    def reconstruct(cls, frames, cameras):
+        graph = cls.graph_from_frames(frames, cameras)
+        graph = cls.get_likely_matches(graph)
+        graph = cls.get_best_matches(graph)
+        return cls(graph, cameras, frames)
+
+
+    @staticmethod
+    def graph_from_frames(frames, cameras):
+        # TODO: make camera object
+        # TODO: make cameras and poses hashable
+        camera_index = dict(zip((id(c) for c in cameras), itertools.count()))
+        graph = nx.Graph()
+        for (frame_a, camera_a), (frame_b, camera_b) in itertools.product(zip(frames, cameras), repeat=2):
+            if frame_a == frame_b and camera_a == camera_b:
+                continue
+            pose_a_indices = dict(zip((id(p) for p in frame_a.poses), itertools.count()))
+            pose_b_indices = dict(zip((id(p) for p in frame_b.poses), itertools.count()))
+            for pose_a, pose_b in itertools.product(frame_a.poses, frame_b.poses):
+                pose3d = Pose3D.from_2d(pose_a, pose_b, camera_a, camera_b)
+                camera_a_index = camera_index[id(camera_a)]
+                camera_b_index = camera_index[id(camera_b)]
+                pose_a_index = pose_a_indices[id(pose_a)]
+                pose_b_index = pose_b_indices[id(pose_b)]
+                graph.add_edge((camera_a_index, pose_a_index), (camera_b_index, pose_b_index), pose=pose3d)
+        return graph
+
+    @staticmethod
+    def get_likely_matches(graph, max_error=15):
+        gg = nx.DiGraph()
+        for node in graph.nodes:
+            best_edges = {}    # target_camera -> best_edge
+            for edge in graph.edges(node, data=True):
+                _, tgt, data = edge
+                weight = data['pose'].error
+                # reject when no reprojection found or beyond max error threshold
+                if np.isnan(weight) or weight > max_error:
+                    continue
+                # tgt[0] is camera the paired keypoints is located in
+                # alternatively, access data['pose']['camera2']
+                if tgt[0] in best_edges:
+                    _, _, data2 = best_edges[tgt[0]]
+                    # compare against np.nan should return false
+                    if weight < data2['pose'].error:
+                        best_edges[tgt[0]] = edge
+                else:
+                    best_edges[tgt[0]] = edge
+            gg.add_edges_from(best_edges.values())
+        return gg.to_undirected(reciprocal=True)
+
+    @staticmethod
+    def get_best_matches(graph, min_edges=1):
+        graph_best = nx.Graph()
+        best_edges = []
+        for subgraph in nx.connected_component_subgraphs(graph):
+            if subgraph.number_of_edges() >= min_edges:
+                best_edge = sorted(subgraph.edges(data=True), key=lambda node: node[2]['pose'].error)[0]
+                best_edges.append(best_edge)
+        graph_best.add_edges_from(best_edges)
+        return graph_best
+
+@attr.s
+class KeypointModel:
+    reference_delta_t = attr.ib()
+    reference_position_transition_error = attr.ib()
+    reference_velocity_transition_error = attr.ib()
+    position_observation_error = attr.ib()
+
+@attr.s
+class PoseInitializationModel:
+    initial_keypoint_position_means = attr.ib()
+    initial_keypoint_velocity_means = attr.ib()
+    initial_keypoint_position_error = attr.ib()
+    initial_keypoint_velocity_error = attr.ib()
+
+@attr.s
+class Pose3DDistribution:
+    keypoint_distributions = attr.ib()
+    tag = attr.ib()
+    timestamp = attr.ib()
+
+@attr.s
+class Pose3DTrack:
+    keypoint_model = attr.ib()
+    pose_3d_distributions = attr.ib()
+    track_id = attr.ib()
+    num_missing_observations = attr.ib()
+
+@attr.s
+class PoseTrackingModel:
+    pass
+
+@attr.s
+class Pose3DTracks:
+    pass
