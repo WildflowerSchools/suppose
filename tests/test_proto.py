@@ -1,22 +1,21 @@
 import os
-import numpy as np
-from suppose.pose_extractor import PoseExtractor
+import warnings
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    from suppose.pose_extractor import PoseExtractor
 from suppose.proto import *
 from suppose import suppose_pb2
 from suppose.camera import load_calibration
 from math import fabs
 import tempfile
-import attr
-import cattr
-from hypothesis import given, infer
+from hypothesis import given
 #from hypothesis.strategies import from_type, builds, floats, lists, composite, assume
 import hypothesis.strategies as st
 from google.protobuf import json_format
 import networkx as nx
 import cv2
-from datetime import datetime
-import suppose.pose2d
-from suppose import test_fixtures
+from . import test_fixtures
+
 
 def assert_almost_equals(a, b, eps=1e-6):
     assert fabs(a - b) <= eps
@@ -210,8 +209,8 @@ def test_pose3dgraph_reconstruct():
     frames = []
     extractor = PoseExtractor()
     for name in camera_names:
-        camera_file = "test/data/{}_cal.json".format(name)
-        image_file = "test/data/still_2018-07-04-18-23-00_{}.jpg".format(name)
+        camera_file = "data/{}_cal.json".format(name)
+        image_file = "data/still_2018-07-04-18-23-00_{}.jpg".format(name)
         file = os.path.join(cwd, camera_file)
         camera = load_calibration(file)
         cameras.append(camera)
@@ -231,7 +230,7 @@ def test_pose3dgraph_reconstruct_2():
     cameras = []
     frames = [Frame.from_dict(f) for f in test_fixtures.POSE3DGRAPH_RECONSTRUCT_2_FRAMES]
     for name in camera_names:
-        camera_file = "test/data/feb14_{}.json".format(name)
+        camera_file = "data/feb14_{}.json".format(name)
         file = os.path.join(cwd, camera_file)
         camera = load_calibration(file)
         cameras.append(camera)

@@ -630,7 +630,8 @@ class Pose3DGraph:
     def get_best_matches(graph, min_edges=1):
         graph_best = nx.Graph()
         best_edges = []
-        for subgraph in nx.connected_component_subgraphs(graph):
+        #for subgraph in nx.connected_component_subgraphs(graph):
+        for subgraph in (graph.subgraph(c).copy() for c in nx.connected_components(graph)):
             if subgraph.number_of_edges() >= min_edges:
                 best_edge = sorted(subgraph.edges(data=True), key=lambda node: node[2]['pose'].error)[0]
                 best_edges.append(best_edge)
