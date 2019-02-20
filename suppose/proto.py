@@ -9,6 +9,7 @@ import numpy as np
 from suppose import suppose_pb2
 import pandas as pd
 import networkx as nx
+import cv2
 
 from suppose.pose3d import undistort_points, undistort_2d_poses, triangulate, project_3d_to_2d, rmse
 
@@ -220,7 +221,7 @@ class Pose2D:
             if valid_keypoints_mask[body_part_from_index] and valid_keypoints_mask[body_part_to_index]:
                 pt1 = [all_points[body_part_from_index, 0], all_points[body_part_to_index, 0]]
                 pt2 = [all_points[body_part_from_index, 1], all_points[body_part_to_index, 1]]
-                plt.plot(pt1, pt2, 'k-', alpha=0.2)
+                plt.plot(pt1, pt2, 'k-', linewidth=2, markersize=10, color='green', alpha=0.8)
 
     # Plot a pose onto a chart with the coordinate system of the origin image.
     # Calls the drawing function above, adds formating, and shows the plot
@@ -228,6 +229,34 @@ class Pose2D:
         self.draw()
         camera_utilities.format_2d_image_plot(image_size)
         plt.show()
+
+    def draw_on_image(self, canvas, draw_limbs=True, copy=False):
+        if copy:
+            canvas = np.copy(canvas)
+
+        color = (255, 100, 255)
+        all_points = self.points_array
+        valid_keypoints_mask = self.valid_keypoints_mask
+        plottable_points = self.valid_keypoints
+        #import ipdb;ipdb.set_trace()
+
+        for x, y in plottable_points:
+            # draw keypoint on canvas
+            if (x > 0 and y > 0):
+                cv2.circle(canvas, (x, y), 8, color, -1)
+
+        if draw_limbs:
+            for body_part_connector in BODY_PART_CONNECTORS:
+                body_part_from_index = body_part_connector[0]
+                body_part_to_index = body_part_connector[1]
+                if valid_keypoints_mask[body_part_from_index] and valid_keypoints_mask[body_part_to_index]:
+                    #draw line
+                    pt1 = (int(all_points[body_part_from_index,0]), int(all_points[body_part_from_index, 1]))
+                    pt2 = (int(all_points[body_part_to_index,0]), int(all_points[body_part_to_index, 1]))
+                    #print(pt1, pt2)
+                    if (0 <= pt1[0] < 99999) and (0 <= pt1[1] < 99999) and ( 0 <= pt2[0] < 99999) and (0 <= pt2[1] < 99999):
+                        cv2.line(canvas, pt1, pt2, color, 3)
+        return canvas
 
     def points(self):
         return [kp.point for kp in self.keypoints]
@@ -255,6 +284,11 @@ class Frame:
             pose.draw()
         camera_utilities.format_2d_image_plot(image_size)
         plt.show()
+
+    def draw_on_image(self, canvas, copy=False):
+        for pose in self.poses:
+            canvas = pose.draw_on_image(canvas, copy=copy)
+        return canvas
 
     # cvutilities
     def num_poses(self):
@@ -309,6 +343,9 @@ class Vector3f:
     def to_numpy(self):
         return np.array([self.x, self.y, self.z], dtype=np.float32)
 
+    def project_2d(self, camera_calibration: typing.Mapping) -> Vector2f:
+        return project_3d_to_2d(np.array([self.to_numpy()]), camera_calibration)
+
 
 @protonic(suppose_pb2.Pose3D.Keypoint3D)
 @attr.s
@@ -360,6 +397,9 @@ class Pose3D:
         p1_orig = a.points_array
         p2_orig = b.points_array
         pts_present = np.logical_and(valid_a, valid_b)  # keypoints exist in both p1 and p2
+        if not np.any(pts_present):
+            # no commont points
+            return cls(error=np.nan)
         p1_orig_shared = p1_orig[pts_present]
         p2_orig_shared = p2_orig[pts_present]
 
@@ -393,10 +433,6 @@ class Pose3D:
         pts_reprojected = project_3d_to_2d(self.to_numpy(), camera_calibration)
         return Pose2D.from_numpy(pts_reprojected)
 
-    def project_2d(self, camera_calibration: typing.Mapping) -> Pose2D:
-        return self.project_2d(camera_calibration)
-
-
     def anchor_points(self):
         keypoints = self.to_numpy()
         if self.valid_keypoints_mask[NECK_INDEX]:
@@ -410,7 +446,7 @@ class Pose3D:
                 head_and_torso_keypoints,
                 self.valid_keypoints_mask)
             return np.mean(keypoints[valid_head_and_torso_keypoints], axis=0)
-        return np.mean(keypoints[self.valid_keypoints_mask], axis = 0)
+        return np.mean(keypoints[self.valid_keypoints_mask], axis=0)
 
 
 @protonic(suppose_pb2.Frame3D)
@@ -439,6 +475,12 @@ class Frame3D:
             poses.append(data['pose'])
         return cls(poses=poses, timestamp=timestamp)
 
+    def project_2d(self, camera_calibration: typing.Mapping) -> Frame:
+        frame = Frame(timestamp=self.timestamp)
+        for pose3d in self.poses:
+            pose2d = pose3d.project_2d(camera_calibration)
+            frame.poses.append(pose2d)
+        return frame
 
 
 
@@ -480,6 +522,14 @@ class ProcessedVideo3D:
     def to_numpy(self):
         return [f.to_numpy() for f in self.frames]
 
+    def project_2d(self, camera_calibration: typing.Mapping) -> ProcessedVideo:
+        # todo should have camera calibration member variables
+        pv = ProcessedVideo()
+        for frame3d in self.frames:
+            frame = frame3d.project_2d(camera_calibration)
+            pv.frames.append(frame)
+        return pv
+
 
 #@attr.s
 #@protonic(suppose_pb2.NXGraph.Link)
@@ -515,7 +565,7 @@ class NXGraph:
 
 @attr.s
 class Pose3DGraph:
-    # TODO: move ot Frame3D?
+    # TODO: move to Frame3D?
     #num_cameras_source_images = attr.ib()
     #num_2d_poses_source_images = attr.ib()
     #source_cameras = attr.ib()
@@ -554,7 +604,7 @@ class Pose3DGraph:
         return graph
 
     @staticmethod
-    def get_likely_matches(graph, max_error=15):
+    def get_likely_matches(graph, max_error=30):
         gg = nx.DiGraph()
         for node in graph.nodes:
             best_edges = {}    # target_camera -> best_edge

@@ -16,7 +16,7 @@ import networkx as nx
 import cv2
 from datetime import datetime
 import suppose.pose2d
-
+from suppose import test_fixtures
 
 def assert_almost_equals(a, b, eps=1e-6):
     assert fabs(a - b) <= eps
@@ -223,3 +223,19 @@ def test_pose3dgraph_reconstruct():
     graph = Pose3DGraph.reconstruct(frames, cameras)
     frame3d = Frame3D.from_graph(graph)
     assert len(frame3d.poses) == 4
+
+
+def test_pose3dgraph_reconstruct_2():
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    camera_names = ["camera01", "camera03", "camera05"]
+    cameras = []
+    frames = [Frame.from_dict(f) for f in test_fixtures.POSE3DGRAPH_RECONSTRUCT_2_FRAMES]
+    for name in camera_names:
+        camera_file = "test/data/feb14_{}.json".format(name)
+        file = os.path.join(cwd, camera_file)
+        camera = load_calibration(file)
+        cameras.append(camera)
+
+    graph = Pose3DGraph.reconstruct(frames, cameras)
+    frame3d = Frame3D.from_graph(graph)
+    assert len(frame3d.poses) == 3

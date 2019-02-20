@@ -19,6 +19,8 @@ log = Logger('pose3d')
 
 
 def undistort_points(pts, calibration):
+    if pts.size == 0:
+        return pts
     camera_matrix = calibration['cameraMatrix']
     distortion_coefficients = calibration['distortionCoefficients']
     original_shape = pts.shape
