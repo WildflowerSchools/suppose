@@ -167,10 +167,10 @@ class Matrix:
 class ImmutableMatrix:
     rows: int = attr.ib(default=0)
     columns: int = attr.ib(default=0)
-    data: typing.Tuple[float] = attr.ib(default=attr.Factory(tuple), metadata={"type": float})
+    data: typing.List[float] = attr.ib(default=attr.Factory(list), metadata={"type": float})
 
     def __attrs_post_init__(self):
-        a = np.array(self.data, dtype=np.float32)
+        a = np.array(self.data, dtype=np.float64)
         a = a.reshape((self.rows, self.columns))
         object.__setattr__(self, "_array", a)
 
@@ -191,13 +191,13 @@ class ImmutableMatrix:
                     raise ValueError("Legacy matrix dict is malformed. Columns are not same size")
             for column in row:
                 data.append(column)
-        return cls(rows=rows, columns=columns, data=tuple(data))
+        return cls(rows=rows, columns=columns, data=data)
 
     @classmethod
     def from_numpy(cls, a):
         rows, columns = a.shape
         b = a.flatten()
-        return cls(rows=rows, columns=columns, data=tuple(b))
+        return cls(rows=rows, columns=columns, data=b)
 
 
 @protonic(suppose_pb2.Camera)
