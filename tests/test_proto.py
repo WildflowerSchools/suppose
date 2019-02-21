@@ -274,3 +274,28 @@ def test_pose3dgraph_reconstruct_2():
     graph = Pose3DGraph.reconstruct(frames, cameras)
     frame3d = Frame3D.from_graph(graph)
     assert len(frame3d.poses) == 3
+
+
+def test_immutablecamera_from_legacy_dict():
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    name = "camera01"
+    camera_file = "data/feb14_{}.json".format(name)
+    file = os.path.join(cwd, camera_file)
+    camera = ImmutableCamera.from_legacy_json_file(file, name)
+    matrix = camera.matrix.to_numpy()
+    assert matrix.shape == (3, 3)
+    matrix2 = camera.matrix.to_numpy()
+    # numpy form should be cached
+    assert id(matrix) == id(matrix2)
+    try:
+        camera.matrix.data[0] = 0
+    except:
+        pass
+    else:
+        raise AssertionError("should not be able to modify immutable matrix")
+
+    expected_matrix = np.array([[937.9434138713071, 0.0, 725.3442435932047],
+                       [0.0, 958.7864143830515, 505.9760884028349],
+                       [0.0, 0.0, 1.0]], dtype=np.float32)
+    diff = np.fabs(matrix.astype(np.float32) - expected_matrix)
+    assert np.all(diff == 0)

@@ -1,6 +1,7 @@
 """
 Protobuf-related utilities for suppose.proto
 """
+import json
 import typing
 import itertools
 import attr
@@ -146,6 +147,108 @@ def protonic(protobuf_cls):
         return cls
 
     return protonic_mix
+
+
+@protonic(suppose_pb2.Matrix)
+@attr.s
+class Matrix:
+    rows: int = attr.ib(default=0)
+    columns: int = attr.ib(default=0)
+    data: typing.List[float] = attr.ib(default=attr.Factory(list), metadata={"type": float})
+
+    def to_numpy(self):
+        a = np.array(self.data, dtype=np.float32)
+        a = a.reshape((self.rows, self.columns))
+        return a
+
+
+@protonic(suppose_pb2.Matrix)
+@attr.s(frozen=True)
+class ImmutableMatrix:
+    rows: int = attr.ib(default=0)
+    columns: int = attr.ib(default=0)
+    data: typing.Tuple[float] = attr.ib(default=attr.Factory(tuple), metadata={"type": float})
+
+    def __attrs_post_init__(self):
+        a = np.array(self.data, dtype=np.float32)
+        a = a.reshape((self.rows, self.columns))
+        object.__setattr__(self, "_array", a)
+
+    def to_numpy(self):
+        return self._array
+
+    @classmethod
+    def from_legacy_dict(cls, m) -> 'ImmutableMatrix':
+        rows = len(m)
+        columns = None
+        data = []
+        for row in m:
+            if columns is None:
+                columns = len(row)
+            else:
+                columns_check = len(row)
+                if columns_check != columns:
+                    raise ValueError("Legacy matrix dict is malformed. Columns are not same size")
+            for column in row:
+                data.append(column)
+        return cls(rows=rows, columns=columns, data=tuple(data))
+
+    @classmethod
+    def from_numpy(cls, a):
+        rows, columns = a.shape
+        b = a.flatten()
+        return cls(rows=rows, columns=columns, data=tuple(b))
+
+
+@protonic(suppose_pb2.Camera)
+@attr.s
+class Camera:
+    name: str = attr.ib(default="")
+    matrix: Matrix = attr.ib(default=attr.Factory(Matrix), metadata={"type": Matrix})
+    distortion: Matrix = attr.ib(default=attr.Factory(Matrix), metadata={"type": Matrix})
+    rotation: Matrix = attr.ib(default=attr.Factory(Matrix), metadata={"type": Matrix})
+    translation: Matrix = attr.ib(default=attr.Factory(Matrix), metadata={"type": Matrix})
+
+
+
+
+@protonic(suppose_pb2.Camera)
+@attr.s(frozen=True)
+class ImmutableCamera:
+    name: str = attr.ib(default="")
+    matrix: ImmutableMatrix = attr.ib(default=attr.Factory(ImmutableMatrix), metadata={"type": ImmutableMatrix})
+    distortion: ImmutableMatrix = attr.ib(default=attr.Factory(ImmutableMatrix), metadata={"type": ImmutableMatrix})
+    rotation: typing.Optional[ImmutableMatrix] = attr.ib(default=None, metadata={"type": ImmutableMatrix})
+    translation: typing.Optional[ImmutableMatrix] = attr.ib(default=None, metadata={"type": ImmutableMatrix})
+
+    @classmethod
+    def from_legacy_json_file(cls, file, name=""):
+        with open(file, 'rb') as f:
+            d = json.load(f)
+        return cls.from_legacy_dict(d, name=name)
+
+    @classmethod
+    def from_legacy_dict(cls, d, name="") -> 'ImmutableCamera':
+        matrix = ImmutableMatrix.from_legacy_dict(d['cameraMatrix'])
+        if matrix.rows != 3 or matrix.columns != 3:
+            raise ValueError("Camera matrix not 3x3")
+        distortion = ImmutableMatrix.from_legacy_dict(d['distortionCoefficients'])
+        if distortion.rows != 1 or distortion.columns != 5:
+            raise ValueError("Distortion coefficients not 1x5")
+        if 'rotationVector' in d:
+            rotation = ImmutableMatrix.from_legacy_dict(d['rotationVector'])
+            if rotation.rows != 3 or rotation.columns != 1:
+                raise ValueError("Rotation vector not 3x1")
+        else:
+            rotation = None
+        if 'translationVector' in d:
+            translation = ImmutableMatrix.from_legacy_dict(d['translationVector'])
+            if translation.rows != 3 or translation.columns != 1:
+                raise ValueError("Translation vector not 3x1")
+        else:
+            translation = None
+        return cls(name=name, matrix=matrix, distortion=distortion, rotation=rotation, translation=translation)
+
 
 
 @protonic(suppose_pb2.Vector2f)
@@ -341,6 +444,18 @@ class ProcessedVideo:
 
     def to_numpy(self):
         return [f.to_numpy() for f in self.frames]
+
+    def start_time(self):
+        if self.frames:
+            return self.frames[0].timestamp
+        else:
+            return None
+
+    def end_time(self):
+        if self.frames:
+            return self.frames[-1].timestamp
+        else:
+            return None
 
 @protonic(suppose_pb2.Vector3f)
 @attr.s

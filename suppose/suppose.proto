@@ -13,6 +13,25 @@ message Vector3f {
     float z = 3;
 }
 
+//message Array {
+//    int32 size = 1;
+//    repeated float data = 2;
+//}
+
+message Matrix {
+    int32 rows = 1;
+    int32 columns = 2;
+    repeated float data = 3;
+}
+
+message Camera {
+    string name = 1;
+    Matrix matrix = 2;
+    Matrix distortion = 3;
+    Matrix rotation = 4;
+    Matrix translation = 5;
+}
+
 message Pose2D {
     message Keypoint2D {
         Vector2f point = 1;
