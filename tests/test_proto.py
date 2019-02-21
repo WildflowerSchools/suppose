@@ -234,6 +234,8 @@ def test_nx():
     pb_dict = json_format.MessageToDict(pb, including_default_value_fields=True)
     G_dict = nx.json_graph.node_link_data(G)
     assert pb_dict == G_dict
+    assert G_dict == pnxg.to_dict()
+    assert pnxg == NXGraph.from_dict(pnxg.to_dict())
 
 
 def test_pose3dgraph_reconstruct():

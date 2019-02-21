@@ -356,7 +356,8 @@ class Vector3f:
         return np.array([self.x, self.y, self.z], dtype=np.float32)
 
     def project_2d(self, camera_calibration: typing.Mapping) -> Vector2f:
-        return project_3d_to_2d(np.array([self.to_numpy()]), camera_calibration)
+        pts = project_3d_to_2d(np.array([self.to_numpy()]), camera_calibration)
+        return Vector2f(x=pts[0], y=pts[1])
 
 
 @protonic(suppose_pb2.Pose3D.Keypoint3D)
@@ -481,6 +482,11 @@ class Frame3D:
         return [p.to_numpy() for p in self.poses]
 
     @classmethod
+    def from_frames(cls, frames: typing.List[Frame], cameras: typing.List[typing.Mapping]) -> 'Frame3D':
+        graph = Pose3DGraph.reconstruct(frames, cameras)
+        return cls.from_graph(graph)
+
+    @classmethod
     def from_graph(cls, graph, timestamp=0):
         poses = []
         for src, tgt, data in graph.graph.edges(data=True):
@@ -550,7 +556,7 @@ class ProcessedVideo3D:
 #    target = attr.ib()
 #    weight = attr.ib()
 
-@attr.s
+@attr.s(cmp=False)
 class NXGraph:
     graph = attr.ib()
 
@@ -575,6 +581,19 @@ class NXGraph:
         G = json_graph.node_link_graph(d)
         return cls(graph=G)
 
+    @classmethod
+    def from_dict(cls, d):
+        json_graph.node_link_graph(d)
+        G = json_graph.node_link_graph(d)
+        return cls(graph=G)
+
+    def to_dict(self):
+        return json_graph.node_link_data(self.graph)
+
+    def __eq__(self, other):
+        # quick hack, should use nx.is_isomorphic
+        return self.to_dict() == other.to_dict()
+
 @attr.s
 class Pose3DGraph:
     # TODO: move to Frame3D?
@@ -582,7 +601,7 @@ class Pose3DGraph:
     #num_2d_poses_source_images = attr.ib()
     #source_cameras = attr.ib()
     #source_images = attr.ib()
-    graph: typing.Any = attr.ib(metadata={"type": NXGraph})
+    graph: nx.Graph = attr.ib(metadata={"type": NXGraph})
     cameras: typing.Mapping = attr.ib()
     #state: typing.Any = attr.ib(default="")
     frames: typing.List[Frame] = attr.ib(default=attr.Factory(list), metadata={"type": Frame})
