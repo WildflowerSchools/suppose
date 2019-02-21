@@ -54,7 +54,7 @@ def make_processed_video_pb(n_frames=3, n_poses=2, n_keypoints=4):
                 keypoint.score = id + 2
     return pv_pb
 
-def test_pose2d_to_array():
+def test_pose2d_pb_to_array():
     pose = suppose_pb2.Pose2D()
     for i in range(3):
         kp = pose.keypoints.add()
@@ -69,8 +69,24 @@ def test_pose2d_to_array():
     a = pose2d_to_array(pose)
     assert np.all(a == expected_a)
 
+def test_pose2d_to_numpy():
+    pose = suppose_pb2.Pose2D()
+    for i in range(3):
+        kp = pose.keypoints.add()
+        kp.point.x = i
+        kp.point.y = i*2
+        kp.score = i*3
+    p = Pose2D.from_proto(pose)
+    expected_a = np.array([
+        [0,0,0],
+        [1,2,3],
+        [2,4,6]
+    ], dtype=np.float32)
+    a = pose2d_to_array(pose)
+    assert np.all(a == expected_a)
+    assert np.all(p.to_numpy() == expected_a)
 
-def test_array_to_pose2d():
+def test_array_to_pose2d_pb():
     a = np.array([
         [0,0,0],
         [1,2,3],
@@ -84,6 +100,24 @@ def test_array_to_pose2d():
         kp.score = i*3
     pose = array_to_pose2d(a)
     assert pose == expected_pose
+
+def test_numpy_to_pose2d_pb():
+    a = np.array([
+        [0,0,0],
+        [1,2,3],
+        [2,4,6]
+    ], dtype=np.float32)
+    expected_pose = suppose_pb2.Pose2D()
+    for i in range(3):
+        kp = expected_pose.keypoints.add()
+        kp.point.x = i
+        kp.point.y = i*2
+        kp.score = i*3
+    expected_p = Pose2D.from_proto(expected_pose)
+    pose = array_to_pose2d(a)
+    assert pose == expected_pose
+    p = Pose2D.from_numpy(a)
+    assert p == expected_p
 
 def test_protonic_from_proto():
     n_frames = 3

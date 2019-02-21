@@ -73,7 +73,13 @@ def array_to_pose2d(a):
 def protonic(protobuf_cls):
     """ Class decorator to support marshing/unmarshaling of attr classes to protobuf equivalents """
     def protonic_mix(cls):
+
         def from_proto(pb):
+            d = json_format.MessageToDict(pb, including_default_value_fields=True)
+            return cls.from_dict(d)
+
+        def __from_proto_OLD(pb):
+            # TODO: explore using google.protobuf.json_format.ParseDict
             obj = cls()
             for a in attr.fields(cls):
                 value = getattr(pb, a.name)  # allow AttributeError for now
@@ -98,6 +104,12 @@ def protonic(protobuf_cls):
             return cls.from_proto(pb)
 
         def to_proto(self):
+            pb = protobuf_cls()
+            json_format.ParseDict(self.to_dict(), pb)
+            return pb
+
+        def __to_proto_OLD(self):
+            # TODO: explore using google.protobuf.json_format.MessageToDict
             pb = protobuf_cls()
             for a in attr.fields(cls):
                 value = getattr(self, a.name)
