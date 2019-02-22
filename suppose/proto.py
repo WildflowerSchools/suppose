@@ -503,12 +503,14 @@ class ProcessedVideo:
     def to_numpy(self):
         return [f.to_numpy() for f in self.frames]
 
+    @property
     def start_time(self):
         if self.frames:
             return self.frames[0].timestamp
         else:
             return None
 
+    @property
     def end_time(self):
         if self.frames:
             return self.frames[-1].timestamp
@@ -652,7 +654,7 @@ class Frame3D:
         return [p.to_numpy() for p in self.poses]
 
     @classmethod
-    def from_frames(cls, frames: typing.List[Frame], cameras: typing.List[typing.Mapping]) -> 'Frame3D':
+    def from_frames(cls, frames: typing.Iterable[Frame], cameras: typing.Iterable[ImmutableCamera]) -> 'Frame3D':
         graph = Pose3DGraph.reconstruct(frames, cameras)
         return cls.from_graph(graph)
 
@@ -689,8 +691,8 @@ class ProcessedVideo3D:
     #file: str = attr.ib(default="")
     #model: str = attr.ib(default="")
     room: str = attr.ib(default="")
-    cameras: typing.List[str] = attr.ib(default=attr.Factory(list), metadata={"type": str})
-    frames: typing.List[Frame] = attr.ib(default=attr.Factory(list), metadata={"type": Frame3D})
+    cameras: typing.List[ImmutableCamera] = attr.ib(default=attr.Factory(list), metadata={"type": ImmutableCamera})
+    frames: typing.List[Frame3D] = attr.ib(default=attr.Factory(list), metadata={"type": Frame3D})
 
     def to_pandas(self):
         frame_dfs = []
@@ -716,6 +718,40 @@ class ProcessedVideo3D:
         for frame3d in self.frames:
             frame = frame3d.project_2d(camera)
             pv.frames.append(frame)
+        return pv
+
+    @property
+    def start_time(self):
+        if self.frames:
+            return self.frames[0].timestamp
+        else:
+            return None
+
+    @property
+    def end_time(self):
+        if self.frames:
+            return self.frames[-1].timestamp
+        else:
+            return None
+
+    @classmethod
+    def from_processed_video_2d(cls, pv2ds: typing.List[ProcessedVideo], cameras: typing.List[ImmutableCamera]) -> 'ProcessedVideo3D':
+        start_times = set(pv.start_time for pv in pv2ds)
+        if len(start_times) > 1:
+            raise ValueError("Passed in ProcessedVideos do not have the same start times")
+        if len(cameras) != len(pv2ds):
+            raise ValueError("len(cameras) != len(pv2ds)")
+        o = cls(cameras=cameras)
+        for frames in zip(*(p.frames for p in pv2ds)):
+            frame3d = Frame3D.from_frames(frames, cameras)
+            o.frames.append(frame3d)
+        return o
+
+    def project_2d(self, camera: ImmutableCamera) -> ProcessedVideo:
+        pv = ProcessedVideo()
+        for frame3d in self.frames:
+            frame2d = frame3d.project_2d(camera)
+            pv.frames.append(frame2d)
         return pv
 
 
