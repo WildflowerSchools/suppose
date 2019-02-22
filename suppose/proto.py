@@ -218,8 +218,28 @@ class ImmutableCamera:
     name: str = attr.ib(default="")
     matrix: ImmutableMatrix = attr.ib(default=attr.Factory(ImmutableMatrix), metadata={"type": ImmutableMatrix})
     distortion: ImmutableMatrix = attr.ib(default=attr.Factory(ImmutableMatrix), metadata={"type": ImmutableMatrix})
-    rotation: typing.Optional[ImmutableMatrix] = attr.ib(default=None, metadata={"type": ImmutableMatrix})
-    translation: typing.Optional[ImmutableMatrix] = attr.ib(default=None, metadata={"type": ImmutableMatrix})
+    rotation: ImmutableMatrix = attr.ib(default=None, metadata={"type": ImmutableMatrix})
+    translation: ImmutableMatrix = attr.ib(default=None, metadata={"type": ImmutableMatrix})
+
+    def __attrs_post_init__(self):
+        projection = self.__get_projection_matrix()
+        object.__setattr__(self, "_projection", projection)
+
+    @property
+    def projection(self):
+        return self._projection
+
+    def __get_projection_matrix(self):
+        """
+        Calculates projection matrix from camera calibration.
+        :return: projection matrix
+        """
+        R = cv2.Rodrigues(self.rotation.to_numpy())[0]
+        t = self.translation.to_numpy()
+        Rt = np.concatenate([R, t], axis=1)
+        C = self.matrix.to_numpy()
+        P = np.matmul(C, Rt)
+        return P
 
     @classmethod
     def from_legacy_json_file(cls, file, name=""):
@@ -235,21 +255,38 @@ class ImmutableCamera:
         distortion = ImmutableMatrix.from_legacy_dict(d['distortionCoefficients'])
         if distortion.rows != 1 or distortion.columns != 5:
             raise ValueError("Distortion coefficients not 1x5")
-        if 'rotationVector' in d:
-            rotation = ImmutableMatrix.from_legacy_dict(d['rotationVector'])
-            if rotation.rows != 3 or rotation.columns != 1:
-                raise ValueError("Rotation vector not 3x1")
-        else:
-            rotation = None
-        if 'translationVector' in d:
-            translation = ImmutableMatrix.from_legacy_dict(d['translationVector'])
-            if translation.rows != 3 or translation.columns != 1:
-                raise ValueError("Translation vector not 3x1")
-        else:
-            translation = None
+        rotation = ImmutableMatrix.from_legacy_dict(d['rotationVector'])
+        if rotation.rows != 3 or rotation.columns != 1:
+            raise ValueError("Rotation vector not 3x1")
+        translation = ImmutableMatrix.from_legacy_dict(d['translationVector'])
+        if translation.rows != 3 or translation.columns != 1:
+            raise ValueError("Translation vector not 3x1")
         return cls(name=name, matrix=matrix, distortion=distortion, rotation=rotation, translation=translation)
 
+    def undistort_points(self, pts):
+        if pts.size == 0:
+            return pts
+        camera_matrix = self.matrix.to_numpy()
+        distortion_coefficients = self.distortion.to_numpy()
+        original_shape = pts.shape
+        pts2 = np.ascontiguousarray(pts).reshape(-1, 1, 2)
+        undistorted_points = cv2.undistortPoints(pts2, camera_matrix, distortion_coefficients, P=camera_matrix)
+        undistorted_points = undistorted_points.reshape(original_shape)
+        return undistorted_points
 
+    @classmethod
+    def triangulate(cls, p1, p2, camera1, camera2):
+        if p1.size == 0 or p2.size == 0:
+            return np.zeros((0, 3))
+        object_points_homogeneous = cv2.triangulatePoints(camera1.projection, camera2.projection, p1.T, p2.T)
+        object_points = cv2.convertPointsFromHomogeneous(object_points_homogeneous.T)
+        object_points = object_points.reshape(-1, 3)
+        return object_points
+
+    def project(self, pts3d):
+        if pts3d.size == 0:
+            return np.zeros((0, 2))
+        return cv2.projectPoints(pts3d, self.rotation.to_numpy(), self.translation.to_numpy(), self.matrix.to_numpy(), self.distortion.to_numpy())[0].squeeze()
 
 @protonic(suppose_pb2.Vector2f)
 @attr.s
@@ -470,8 +507,8 @@ class Vector3f:
     def to_numpy(self):
         return np.array([self.x, self.y, self.z], dtype=np.float32)
 
-    def project_2d(self, camera_calibration: typing.Mapping) -> Vector2f:
-        pts = project_3d_to_2d(np.array([self.to_numpy()]), camera_calibration)
+    def project_2d(self, camera: ImmutableCamera) -> Vector2f:
+        pts = camera.project(np.array([self.to_numpy()]))
         return Vector2f(x=pts[0], y=pts[1])
 
 
@@ -519,7 +556,7 @@ class Pose3D:
         return np.array([kp.is_valid for kp in self.keypoints])
 
     @classmethod
-    def from_2d(cls: Type[T], a: Pose2D, b: Pose2D, camera_calibration1: typing.Mapping, camera_calibration2: typing.Mapping) -> T:
+    def from_2d(cls: Type[T], a: Pose2D, b: Pose2D, camera_calibration1: ImmutableCamera, camera_calibration2: ImmutableCamera) -> T:
         valid_a = a.valid_keypoints_mask
         valid_b = b.valid_keypoints_mask
         p1_orig = a.points_array
@@ -531,15 +568,12 @@ class Pose3D:
         p1_orig_shared = p1_orig[pts_present]
         p2_orig_shared = p2_orig[pts_present]
 
-        p1 = undistort_points(p1_orig_shared, camera_calibration1)
-        p2 = undistort_points(p2_orig_shared, camera_calibration2)
+        p1 = camera_calibration1.undistort_points(p1_orig_shared)
+        p2 = camera_calibration2.undistort_points(p2_orig_shared)
+        pts3d = ImmutableCamera.triangulate(p1, p2, camera_calibration1, camera_calibration2)
 
-        projection_matrix1 = camera_calibration1['projection']
-        projection_matrix2 = camera_calibration2['projection']
-        pts3d = triangulate(p1, p2, projection_matrix1, projection_matrix2)
-
-        p1_reprojected = project_3d_to_2d(pts3d, camera_calibration1)
-        p2_reprojected = project_3d_to_2d(pts3d, camera_calibration2)
+        p1_reprojected = camera_calibration1.project(pts3d)
+        p2_reprojected = camera_calibration2.project(pts3d)
         p1_rmse = rmse(p1_orig_shared, p1_reprojected)
         p2_rmse = rmse(p2_orig_shared, p2_reprojected)
         if np.isnan(p1_rmse) or np.isnan(p2_rmse):
@@ -557,8 +591,8 @@ class Pose3D:
             obj.keypoints.append(Keypoint3D(point=Vector3f(x=x, y=y, z=z)))
         return obj
 
-    def project_2d(self, camera_calibration: typing.Mapping) -> Pose2D:
-        pts_reprojected = project_3d_to_2d(self.to_numpy(), camera_calibration)
+    def project_2d(self, camera: ImmutableCamera) -> Pose2D:
+        pts_reprojected = camera.project(self.to_numpy())
         return Pose2D.from_numpy(pts_reprojected)
 
     def anchor_points(self):
@@ -608,10 +642,10 @@ class Frame3D:
             poses.append(data['pose'])
         return cls(poses=poses, timestamp=timestamp)
 
-    def project_2d(self, camera_calibration: typing.Mapping) -> Frame:
+    def project_2d(self, camera: ImmutableCamera) -> Frame:
         frame = Frame(timestamp=self.timestamp)
         for pose3d in self.poses:
-            pose2d = pose3d.project_2d(camera_calibration)
+            pose2d = pose3d.project_2d(camera)
             frame.poses.append(pose2d)
         return frame
 
@@ -655,11 +689,11 @@ class ProcessedVideo3D:
     def to_numpy(self):
         return [f.to_numpy() for f in self.frames]
 
-    def project_2d(self, camera_calibration: typing.Mapping) -> ProcessedVideo:
+    def project_2d(self, camera: ImmutableCamera) -> ProcessedVideo:
         # todo should have camera calibration member variables
         pv = ProcessedVideo()
         for frame3d in self.frames:
-            frame = frame3d.project_2d(camera_calibration)
+            frame = frame3d.project_2d(camera)
             pv.frames.append(frame)
         return pv
 

@@ -248,7 +248,7 @@ def test_pose3dgraph_reconstruct():
         camera_file = "data/{}_cal.json".format(name)
         image_file = "data/still_2018-07-04-18-23-00_{}.jpg".format(name)
         file = os.path.join(cwd, camera_file)
-        camera = load_calibration(file)
+        camera = ImmutableCamera.from_legacy_json_file(file)
         cameras.append(camera)
         file = os.path.join(cwd, image_file)
         im = cv2.imread(file)
@@ -260,6 +260,21 @@ def test_pose3dgraph_reconstruct():
     assert len(frame3d.poses) == 4
 
 
+#def test_pose3dgraph_reconstruct_2():
+#    cwd = os.path.dirname(os.path.realpath(__file__))
+#    camera_names = ["camera01", "camera03", "camera05"]
+#    cameras = []
+#    frames = [Frame.from_dict(f) for f in test_fixtures.POSE3DGRAPH_RECONSTRUCT_2_FRAMES]
+#    for name in camera_names:
+#        camera_file = "data/feb14_{}.json".format(name)
+#        file = os.path.join(cwd, camera_file)
+#        camera = load_calibration(file)
+#        cameras.append(camera)
+#
+#    graph = Pose3DGraph.reconstruct(frames, cameras)
+#    frame3d = Frame3D.from_graph(graph)
+#    assert len(frame3d.poses) == 3
+
 def test_pose3dgraph_reconstruct_2():
     cwd = os.path.dirname(os.path.realpath(__file__))
     camera_names = ["camera01", "camera03", "camera05"]
@@ -268,7 +283,8 @@ def test_pose3dgraph_reconstruct_2():
     for name in camera_names:
         camera_file = "data/feb14_{}.json".format(name)
         file = os.path.join(cwd, camera_file)
-        camera = load_calibration(file)
+        #camera = load_calibration(file)
+        camera = ImmutableCamera.from_legacy_json_file(file)
         cameras.append(camera)
 
     graph = Pose3DGraph.reconstruct(frames, cameras)
@@ -303,3 +319,5 @@ def test_immutablecamera_from_legacy_dict():
     pb = camera.to_proto()
     camera2 = ImmutableCamera.from_proto(pb)
     assert camera == camera2
+
+    assert camera.projection.shape == (3, 4)
