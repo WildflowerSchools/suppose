@@ -79,5 +79,7 @@ def stack_images(images, canvas_width=480*2, force_n=None):
         if c >= columns:
             c = 0
             r += 1
-
     return canvas
+
+def rmse(p1, p2):
+    return np.linalg.norm(p1 - p2)/np.sqrt(p1.shape[0])
