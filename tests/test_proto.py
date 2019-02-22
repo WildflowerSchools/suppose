@@ -332,8 +332,10 @@ def test_batch_from_search():
         camera = ImmutableCamera.from_legacy_json_file(file, name)
         cameras.append(camera)
 
-    video_glob = "/Users/lue/wildflower/test_feb14_2019/camera*/*.mp4"
+    home = os.environ['HOME']
+    video_glob = os.path.join(home, "wildflower/test_feb14_2019/camera*/*.mp4")
     batch = Batch.from_search(cameras, video_glob)
+    assert len(batch.listings) > 0
 
 class NullPoseExtractor:
     def extract(self, image, timestamp=0):
