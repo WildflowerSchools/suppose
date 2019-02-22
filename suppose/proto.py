@@ -4,6 +4,7 @@ Protobuf-related utilities for suppose.proto
 import json
 import typing
 import itertools
+from collections import defaultdict
 import attr
 import cattr
 import numpy as np
@@ -12,6 +13,9 @@ import pandas as pd
 import networkx as nx
 import cv2
 from matplotlib.axes import Axes
+import glob
+import os
+import datetime
 
 from suppose.common import rmse, LIMB_COLORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES
 from tf_pose.common import CocoPairsRender
@@ -517,6 +521,30 @@ class ProcessedVideo:
         else:
             return None
 
+    @classmethod
+    def from_video(cls, file, extractor):
+        # hardcode timestamp format for now
+        timestamp_start = cls._get_timestamp_from_file(file, "video_%Y-%m-%d-%H-%M-%S.mp4")
+        cap = cv2.VideoCapture(file)
+        o = cls(file=file)
+        while True:
+            time_offset = cap.get(cv2.CAP_PROP_POS_MSEC)
+            ret, image = cap.read()
+            if not ret:
+                break
+            timestamp = timestamp_start + datetime.timedelta(milliseconds=time_offset)
+            frame = extractor.extract(image, timestamp=timestamp.timestamp())
+            o.frames.append(frame)
+        return o
+
+    @classmethod
+    def _get_timestamp_from_file(cls, file, file_datetime_format):
+        timestamp = datetime.datetime.strptime(os.path.basename(file), file_datetime_format)
+        return timestamp
+
+
+
+
 @protonic(suppose_pb2.Vector3f)
 @attr.s
 class Vector3f:
@@ -735,13 +763,13 @@ class ProcessedVideo3D:
             return None
 
     @classmethod
-    def from_processed_video_2d(cls, pv2ds: typing.List[ProcessedVideo], cameras: typing.List[ImmutableCamera]) -> 'ProcessedVideo3D':
+    def from_processed_video_2d(cls, pv2ds: typing.List[ProcessedVideo], cameras: typing.Iterable[ImmutableCamera], room="") -> 'ProcessedVideo3D':
         start_times = set(pv.start_time for pv in pv2ds)
         if len(start_times) > 1:
             raise ValueError("Passed in ProcessedVideos do not have the same start times")
         if len(cameras) != len(pv2ds):
             raise ValueError("len(cameras) != len(pv2ds)")
-        o = cls(cameras=cameras)
+        o = cls(cameras=list(cameras), room=room)
         for frames in zip(*(p.frames for p in pv2ds)):
             frame3d = Frame3D.from_frames(frames, cameras)
             o.frames.append(frame3d)
@@ -808,7 +836,7 @@ class Pose3DGraph:
     #source_cameras = attr.ib()
     #source_images = attr.ib()
     graph: nx.Graph = attr.ib(metadata={"type": NXGraph})
-    cameras: typing.Mapping = attr.ib()
+    cameras:typing.List[ImmutableCamera] = attr.ib(default=attr.Factory(list), metadata={"type": ImmutableCamera})
     #state: typing.Any = attr.ib(default="")
     frames: typing.List[Frame] = attr.ib(default=attr.Factory(list), metadata={"type": Frame})
 
@@ -874,6 +902,50 @@ class Pose3DGraph:
                 best_edges.append(best_edge)
         graph_best.add_edges_from(best_edges)
         return graph_best
+
+@attr.s
+class VideoListing:
+    camera: ImmutableCamera = attr.ib()
+    files: typing.List[str] = attr.ib(default=attr.Factory(list), metadata={"type": str})
+
+    def sort_files(self):
+        self.files.sort()
+
+    @property
+    def first_video_start_time(self):
+        pass
+
+    @property
+    def last_video_start_time(self):
+        pass
+
+
+@attr.s
+class Batch:
+    # cameras?
+    listings: typing.Mapping[str, VideoListing] = attr.ib(default=attr.Factory(dict), metadata={"type": VideoListing})
+
+    @classmethod
+    def from_search(cls, cameras: typing.List[ImmutableCamera], glob_pattern: str) -> 'Batch':
+        """ Finds videos for camera views and creates a Batch matching cameras to video files """
+        files = glob.glob(glob_pattern)
+        listings = {camera.name: VideoListing(camera=camera) for camera in cameras}
+        for _file in files:
+            file = os.path.abspath(_file)
+            camera = cls._parse_file_path(file)
+            listings[camera].files.append(file)
+        for listing in listings.values():
+            listing.sort_files()
+        o = cls(listings=listings)
+        return o
+
+    @classmethod
+    def _parse_file_path(cls, file) -> str:
+        parts = file.split(os.sep)
+        camera_name = parts[-2]
+        return camera_name
+
+
 
 @attr.s
 class KeypointModel:

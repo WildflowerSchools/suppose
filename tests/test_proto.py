@@ -321,3 +321,33 @@ def test_immutablecamera_from_legacy_dict():
     assert camera == camera2
 
     assert camera.projection.shape == (3, 4)
+
+def test_batch_from_search():
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    cameras = []
+    camera_names = ("camera01", "camera03", "camera05")
+    for name in camera_names:
+        camera_file = "data/feb14_{}.json".format(name)
+        file = os.path.join(cwd, camera_file)
+        camera = ImmutableCamera.from_legacy_json_file(file, name)
+        cameras.append(camera)
+
+    video_glob = "/Users/lue/wildflower/test_feb14_2019/camera*/*.mp4"
+    batch = Batch.from_search(cameras, video_glob)
+
+class NullPoseExtractor:
+    def extract(self, image, timestamp=0):
+        frame = Frame(timestamp=timestamp)
+        return frame
+
+def test_processed_video_from_video():
+    home = os.environ['HOME']
+    _file = "wildflower/test_feb14_2019/camera01/video_2019-02-14-18-10-10.mp4"
+    file = os.path.join(home, _file)
+    pb_file = file + "__proto-ProcessedVideo-cmu.pb"
+    extractor = NullPoseExtractor()
+    pv = ProcessedVideo.from_video(file, extractor=extractor)
+    pv_expected = ProcessedVideo.from_proto_file(pb_file)
+    timestamps = [f.timestamp for f in pv.frames]
+    expected_timestamps = [f.timestamp for f in pv_expected.frames]
+    assert timestamps == expected_timestamps
