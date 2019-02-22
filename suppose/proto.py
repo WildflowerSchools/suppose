@@ -12,7 +12,8 @@ import pandas as pd
 import networkx as nx
 import cv2
 
-from suppose.common import rmse
+from suppose.common import rmse, LIMB_COLORS
+from tf_pose.common import CocoPairsRender
 
 from cvutilities import camera_utilities
 from cvutilities.common import BODY_PART_CONNECTORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES
@@ -25,7 +26,6 @@ import typing
 from typing import TypeVar, Type
 
 T = TypeVar('T', bound='Parent')
-
 
 
 def load_protobuf(file, pb_cls):
@@ -364,7 +364,9 @@ class Pose2D:
 
     def draw(self):
         all_points = self.to_numpy()[:, :2]
-        camera_utilities.draw_2d_image_points(self.valid_keypoints)
+        #camera_utilities.draw_2d_image_points(self.valid_keypoints)
+        plt.plot(self.valid_keypoints[:, 0], self.valid_keypoints[:,1], '.', color='green', markersize=10)
+
         valid_keypoints_mask = self.valid_keypoints_mask
 
         for body_part_connector in BODY_PART_CONNECTORS:
@@ -373,7 +375,7 @@ class Pose2D:
             if valid_keypoints_mask[body_part_from_index] and valid_keypoints_mask[body_part_to_index]:
                 pt1 = [all_points[body_part_from_index, 0], all_points[body_part_to_index, 0]]
                 pt2 = [all_points[body_part_from_index, 1], all_points[body_part_to_index, 1]]
-                plt.plot(pt1, pt2, 'k-', linewidth=2, markersize=10, color='green', alpha=0.8)
+                plt.plot(pt1, pt2, 'k-', linewidth=3, markersize=10, color='green', alpha=0.8)
 
     # Plot a pose onto a chart with the coordinate system of the origin image.
     # Calls the drawing function above, adds formating, and shows the plot
@@ -386,19 +388,21 @@ class Pose2D:
         if copy:
             canvas = np.copy(canvas)
 
-        color = (255, 100, 255)
+        #color = (255, 100, 255)
         all_points = self.points_array
         valid_keypoints_mask = self.valid_keypoints_mask
         plottable_points = self.valid_keypoints
         #import ipdb;ipdb.set_trace()
 
+        joint_color = (0, 255, 0)
+
         for x, y in plottable_points:
             # draw keypoint on canvas
             if (x > 0 and y > 0):
-                cv2.circle(canvas, (x, y), 8, color, -1)
+                cv2.circle(canvas, (x, y), 4, joint_color, -1)
 
         if draw_limbs:
-            for body_part_connector in BODY_PART_CONNECTORS:
+            for body_part_connector in CocoPairsRender:
                 body_part_from_index = body_part_connector[0]
                 body_part_to_index = body_part_connector[1]
                 if valid_keypoints_mask[body_part_from_index] and valid_keypoints_mask[body_part_to_index]:
@@ -407,7 +411,8 @@ class Pose2D:
                     pt2 = (int(all_points[body_part_to_index,0]), int(all_points[body_part_to_index, 1]))
                     #print(pt1, pt2)
                     if (0 <= pt1[0] < 99999) and (0 <= pt1[1] < 99999) and ( 0 <= pt2[0] < 99999) and (0 <= pt2[1] < 99999):
-                        cv2.line(canvas, pt1, pt2, color, 3)
+                        color = LIMB_COLORS[(body_part_from_index, body_part_to_index)]
+                        cv2.line(canvas, pt1, pt2, color, 2)
         return canvas
 
     def points(self):

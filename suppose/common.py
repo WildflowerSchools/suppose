@@ -5,6 +5,7 @@ from math import ceil, sqrt
 from logbook import Logger
 import numpy as np
 import cv2
+import tf_pose.common
 
 
 log = Logger('common')
@@ -83,3 +84,6 @@ def stack_images(images, canvas_width=480*2, force_n=None):
 
 def rmse(p1, p2):
     return np.linalg.norm(p1 - p2)/np.sqrt(p1.shape[0])
+
+
+LIMB_COLORS = dict(zip(tf_pose.common.CocoPairsRender, tf_pose.common.CocoColors))
