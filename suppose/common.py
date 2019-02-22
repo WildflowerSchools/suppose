@@ -5,7 +5,7 @@ from math import ceil, sqrt
 from logbook import Logger
 import numpy as np
 import cv2
-import tf_pose.common
+from tf_pose.common import CocoPairsRender, CocoColors, CocoPart
 
 
 log = Logger('common')
@@ -86,4 +86,22 @@ def rmse(p1, p2):
     return np.linalg.norm(p1 - p2)/np.sqrt(p1.shape[0])
 
 
-LIMB_COLORS = dict(zip(tf_pose.common.CocoPairsRender, tf_pose.common.CocoColors))
+LIMB_COLORS = dict(zip(CocoPairsRender, CocoColors))
+
+NECK_INDEX = CocoPart.Neck.value
+SHOULDER_INDICES = (CocoPart.RShoulder.value, CocoPart.LShoulder.value)
+# (0, 1, 2, 5, 8, 11, 14 , 15, 16, 17)
+HEAD_AND_TORSO_INDICES = (
+    CocoPart.Nose.value,
+    CocoPart.Neck.value,
+    CocoPart.RShoulder.value,
+    CocoPart.LShoulder.value,
+    CocoPart.RHip.value,
+    CocoPart.LHip.value,
+    CocoPart.REye,
+    CocoPart.LEye,
+    CocoPart.REar,
+    CocoPart.LEar
+)
+
+

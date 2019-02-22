@@ -11,12 +11,11 @@ from suppose import suppose_pb2
 import pandas as pd
 import networkx as nx
 import cv2
+from matplotlib.axes import Axes
 
-from suppose.common import rmse, LIMB_COLORS
+from suppose.common import rmse, LIMB_COLORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES
 from tf_pose.common import CocoPairsRender
 
-from cvutilities import camera_utilities
-from cvutilities.common import BODY_PART_CONNECTORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES
 import matplotlib.pyplot as plt
 
 from google.protobuf import json_format
@@ -362,29 +361,44 @@ class Pose2D:
     def valid_keypoints_mask(self):
         return np.array([kp.is_valid for kp in self.keypoints])
 
-    def draw(self):
+    def draw(self, ax=None) -> Axes:
+        if ax is None:
+            fig, ax = plt.subplots()
         all_points = self.to_numpy()[:, :2]
         #camera_utilities.draw_2d_image_points(self.valid_keypoints)
-        plt.plot(self.valid_keypoints[:, 0], self.valid_keypoints[:,1], '.', color='green', markersize=10)
+        ax.plot(self.valid_keypoints[:, 0], self.valid_keypoints[:,1], '.', color='green', markersize=10)
 
         valid_keypoints_mask = self.valid_keypoints_mask
 
-        for body_part_connector in BODY_PART_CONNECTORS:
+        for body_part_connector in CocoPairsRender:
             body_part_from_index = body_part_connector[0]
             body_part_to_index = body_part_connector[1]
             if valid_keypoints_mask[body_part_from_index] and valid_keypoints_mask[body_part_to_index]:
                 pt1 = [all_points[body_part_from_index, 0], all_points[body_part_to_index, 0]]
                 pt2 = [all_points[body_part_from_index, 1], all_points[body_part_to_index, 1]]
-                plt.plot(pt1, pt2, 'k-', linewidth=3, markersize=10, color='green', alpha=0.8)
+                color = LIMB_COLORS[(body_part_from_index, body_part_to_index)]
+                ax.plot(pt1, pt2, 'k-', linewidth=3, markersize=10, color=[c/255 for c in color], alpha=0.8)
+        return ax
 
     # Plot a pose onto a chart with the coordinate system of the origin image.
     # Calls the drawing function above, adds formating, and shows the plot
-    def plot(self, image_size=(1296, 972)):
-        self.draw()
-        camera_utilities.format_2d_image_plot(image_size)
-        plt.show()
+    def plot(self, ax=None, image_size=(1296, 972)) -> Axes:
+        ax = self.draw(ax)
+        self.format_plot(ax, image_size=image_size)
+        return ax
 
-    def draw_on_image(self, canvas, draw_limbs=True, copy=False):
+    @staticmethod
+    def format_plot(ax: Axes, image_size):
+        ax.set_xlim(0, image_size[0])
+        ax.set_ylim(0, image_size[1])
+        ax.set_xlabel(r'$u$')
+        ax.set_ylabel('$v$')
+        ax.invert_yaxis()
+        ax.xaxis.set_ticks_position('top')
+        ax.xaxis.set_label_position('top')
+        ax.set_aspect('equal')
+
+    def draw_on_image(self, canvas, draw_limbs=True, copy=False, lineType=cv2.LINE_AA):
         if copy:
             canvas = np.copy(canvas)
 
@@ -412,7 +426,7 @@ class Pose2D:
                     #print(pt1, pt2)
                     if (0 <= pt1[0] < 99999) and (0 <= pt1[1] < 99999) and ( 0 <= pt2[0] < 99999) and (0 <= pt2[1] < 99999):
                         color = LIMB_COLORS[(body_part_from_index, body_part_to_index)]
-                        cv2.line(canvas, pt1, pt2, color, 2)
+                        cv2.line(canvas, pt1, pt2, color, thickness=2, lineType=lineType)
         return canvas
 
     def points(self):
@@ -436,15 +450,17 @@ class Frame:
         return np.array([p.to_numpy() for p in self.poses])
 
     # Plot the poses onto a set of charts, one for each source camera view.
-    def plot(self, image_size=(1296, 972)):
+    def plot(self, ax=None, image_size=(1296, 972)) -> Axes:
+        if ax is None:
+            fig, ax = plt.subplots()
         for pose in self.poses:
-            pose.draw()
-        camera_utilities.format_2d_image_plot(image_size)
-        plt.show()
+            pose.draw(ax=ax)
+        Pose2D.format_plot(ax, image_size)
+        return ax
 
-    def draw_on_image(self, canvas, copy=False):
+    def draw_on_image(self, canvas, copy=False, lineType=cv2.LINE_AA):
         for pose in self.poses:
-            canvas = pose.draw_on_image(canvas, copy=copy)
+            canvas = pose.draw_on_image(canvas, copy=copy, lineType=lineType)
         return canvas
 
     # cvutilities
