@@ -322,7 +322,7 @@ def test_immutablecamera_from_legacy_dict():
 
     assert camera.projection.shape == (3, 4)
 
-def test_batch_from_search():
+def test_batch_from_search_and_process():
     cwd = os.path.dirname(os.path.realpath(__file__))
     cameras = []
     camera_names = ("camera01", "camera03", "camera05")
@@ -333,9 +333,11 @@ def test_batch_from_search():
         cameras.append(camera)
 
     home = os.environ['HOME']
-    video_glob = os.path.join(home, "wildflower/test_feb14_2019/camera*/*.mp4")
+    video_glob = os.path.join(home, "wildflower/test_feb14_2019/poses/camera*/video_2019-02-14-19-09-[0-2]0.mp4__proto-ProcessedVideo-cmu.pb")
     batch = Batch.from_search(cameras, video_glob)
     assert len(batch.listings) > 0
+    pv3ds = batch.process(NullPoseExtractor, read_from_cache=False, write_to_cache=False)
+    assert len(pv3ds) == 3
 
 class NullPoseExtractor:
     def extract(self, image, timestamp=0):

@@ -522,7 +522,15 @@ class ProcessedVideo:
             return None
 
     @classmethod
-    def from_video(cls, file, extractor):
+    def from_video(cls, file, extractor, read_from_cache=True, write_to_cache=True, cache_dir=None, cache_suffix="__proto-ProcessedVideo-cmu.pb"):
+        file = os.path.abspath(file)
+        if cache_dir is None:
+            cache_dir = os.path.abspath(os.path.dirname(file))
+        cached_result_file = os.path.join(cache_dir, os.path.basename(file) + cache_suffix)
+        if read_from_cache:
+            o = cls.from_proto_file(cached_result_file)
+            return o
+
         # hardcode timestamp format for now
         timestamp_start = cls._get_timestamp_from_file(file, "video_%Y-%m-%d-%H-%M-%S.mp4")
         cap = cv2.VideoCapture(file)
@@ -535,6 +543,10 @@ class ProcessedVideo:
             timestamp = timestamp_start + datetime.timedelta(milliseconds=time_offset)
             frame = extractor.extract(image, timestamp=timestamp.timestamp())
             o.frames.append(frame)
+        if write_to_cache:
+            if os.path.exists(cached_result_file):
+                print("Warning: overriding cached result '{}'".format(cached_result_file))
+            o.to_proto_file(cached_result_file)
         return o
 
     @classmethod
@@ -944,6 +956,26 @@ class Batch:
         parts = file.split(os.sep)
         camera_name = parts[-2]
         return camera_name
+
+    def process(self, extractor, read_from_cache=True, write_to_cache=True, cache_dir=None, cache_suffix="__proto-ProcessedVideo-cmu.pb"):
+        """ Run pipeline to extract poses and 3d poses from videos """
+        if len(set(len(l.files) for l in self.listings.values())) != 1:
+            raise ValueError("Length of video files in listing is not equal")
+        pv3ds = []
+        cameras = [l.camera for l in self.listings.values()]
+        for files in zip(*(l.files for l in self.listings.values())):
+            pv2ds = []
+            for file in files:
+                if file.endswith(".pb"):
+                    pv2d = ProcessedVideo.from_proto_file(file)
+                else:
+                    pv2d = ProcessedVideo.from_video(file, extractor, read_from_cache=read_from_cache, write_to_cache=write_to_cache, cache_dir=cache_dir, cache_suffix=cache_suffix)
+                pv2ds.append(pv2d)
+            pv3d = ProcessedVideo3D.from_processed_video_2d(pv2ds=pv2ds, cameras=cameras)
+            pv3ds.append(pv3d)
+        return pv3ds
+
+
 
 
 
