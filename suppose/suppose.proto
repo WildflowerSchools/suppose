@@ -91,7 +91,7 @@ message Room {
 
 message ProcessedVideo3D {
     string room = 1;
-    repeated string cameras = 2;
+    repeated Camera cameras = 2;
     repeated Frame3D frames = 3;
 }
 

@@ -696,7 +696,7 @@ class Frame3D:
     @classmethod
     def from_frames(cls, frames: typing.Iterable[Frame], cameras: typing.Iterable[ImmutableCamera]) -> 'Frame3D':
         graph = Pose3DGraph.reconstruct(frames, cameras)
-        return cls.from_graph(graph)
+        return cls.from_graph(graph, timestamp=frames[0].timestamp)
 
     @classmethod
     def from_graph(cls, graph, timestamp=0):
@@ -931,6 +931,10 @@ class VideoListing:
     def last_video_start_time(self):
         pass
 
+    @property
+    def size(self):
+        return len(self.files)
+
 
 @attr.s
 class Batch:
@@ -938,7 +942,7 @@ class Batch:
     listings: typing.Mapping[str, VideoListing] = attr.ib(default=attr.Factory(dict), metadata={"type": VideoListing})
 
     @classmethod
-    def from_search(cls, cameras: typing.List[ImmutableCamera], glob_pattern: str) -> 'Batch':
+    def from_search(cls: Type[T], cameras: typing.List[ImmutableCamera], glob_pattern: str) -> T:
         """ Finds videos for camera views and creates a Batch matching cameras to video files """
         files = glob.glob(glob_pattern)
         listings = {camera.name: VideoListing(camera=camera) for camera in cameras}
@@ -958,10 +962,19 @@ class Batch:
         return camera_name
 
     def process(self, extractor, read_from_cache=True, write_to_cache=True, cache_dir=None, cache_suffix="__proto-ProcessedVideo-cmu.pb"):
+        """
+        Processes this batch of videos.
+
+        :param extractor:
+        :param read_from_cache:
+        :param write_to_cache:
+        :param cache_dir:
+        :param cache_suffix:
+        :return: iterator of ProcessedVideo3D objects
+        """
         """ Run pipeline to extract poses and 3d poses from videos """
         if len(set(len(l.files) for l in self.listings.values())) != 1:
             raise ValueError("Length of video files in listing is not equal")
-        pv3ds = []
         cameras = [l.camera for l in self.listings.values()]
         for files in zip(*(l.files for l in self.listings.values())):
             pv2ds = []
@@ -972,8 +985,7 @@ class Batch:
                     pv2d = ProcessedVideo.from_video(file, extractor, read_from_cache=read_from_cache, write_to_cache=write_to_cache, cache_dir=cache_dir, cache_suffix=cache_suffix)
                 pv2ds.append(pv2d)
             pv3d = ProcessedVideo3D.from_processed_video_2d(pv2ds=pv2ds, cameras=cameras)
-            pv3ds.append(pv3d)
-        return pv3ds
+            yield pv3d
 
 
 
