@@ -119,7 +119,7 @@ def extract_poses(input_file, e, model_name, datetime_start):
 
 
 @timing
-def extract(videos, model, resolution, write_output, display_progress, file_datetime_format):
+def extract(videos, model, resolution, write_output, display_progress, file_datetime_format, overwrite_output):
     log.info("Starting Pose Extractor")
     log.info("videos: {}".format(videos))
     log.info("model: {}".format(model))
@@ -140,15 +140,24 @@ def extract(videos, model, resolution, write_output, display_progress, file_date
             display_filename = os.path.join(*f.rsplit("/", maxsplit=4)[-2:])
             log.info("File {} / {} - {}".format(idx+1, length, f))
             tqdm_files.set_description(display_filename)
+            if write_output:
+                output_filename = "{}__proto-ProcessedVideo-{}.pb".format(f, model)
+                if not overwrite_output and os.path.exists(output_filename):
+                    log.info("Skipping file {} because output {} exists".format(f, output_filename))
+                    continue
+
             # get timestamp of first frame of video via filename
             if file_datetime_format != "":
                 datetime_start = parse_datetime(os.path.basename(f), file_datetime_format)
             else:
                 datetime_start = None
-            processed_video = extract_poses(f, e, model, datetime_start)
-            if write_output:
-                output_filename = "{}__proto-ProcessedVideo-{}.pb".format(f, model)
-                processed_video.to_proto_file(output_filename)
+            try:
+                processed_video = extract_poses(f, e, model, datetime_start)
+                if write_output:
+                    processed_video.to_proto_file(output_filename)
+            except IOError as exc:
+                log.error(exc)
+                log.info("Skipping file {} do to error".format(f))
     log.info("Done!")
 
 

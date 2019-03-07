@@ -560,9 +560,9 @@ class ProcessedVideo:
 @protonic(suppose_pb2.Vector3f)
 @attr.s
 class Vector3f:
-    x: float = attr.ib(default=0)
-    y: float = attr.ib(default=0)
-    z: float = attr.ib(default=0)
+    x: float = attr.ib(default=0.0)
+    y: float = attr.ib(default=0.0)
+    z: float = attr.ib(default=0.0)
 
     def to_pandas(self):
         return pd.Series(self.to_dict())
@@ -600,7 +600,7 @@ class Keypoint3D:
 @protonic(suppose_pb2.Pose3D)
 @attr.s
 class Pose3D:
-    type: int = attr.ib(default=0)
+    type: str = attr.ib(default=suppose_pb2.Pose3D.Type.keys()[0], validator=attr.validators.in_(suppose_pb2.Pose3D.Type.keys()))
     error: float = attr.ib(default=0)
     keypoints: typing.List[Keypoint3D] = attr.ib(default=attr.Factory(list), metadata={"type": Keypoint3D})
 

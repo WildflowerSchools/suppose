@@ -15,6 +15,7 @@ from google.protobuf import json_format
 import networkx as nx
 import cv2
 from . import test_fixtures
+import json
 
 
 def assert_almost_equals(a, b, eps=1e-6):
@@ -336,8 +337,20 @@ def test_batch_from_search_and_process():
     video_glob = os.path.join(home, "wildflower/test_feb14_2019/poses/camera*/video_2019-02-14-19-09-[0-2]0.mp4__proto-ProcessedVideo-cmu.pb")
     batch = Batch.from_search(cameras, video_glob)
     assert len(batch.listings) > 0
-    pv3ds = batch.process(NullPoseExtractor, read_from_cache=False, write_to_cache=False)
+    pv3ds = list(batch.process(NullPoseExtractor, read_from_cache=False, write_to_cache=False))
     assert len(pv3ds) == 3
+
+    pb = pv3ds[0].to_proto()
+    pv3d = ProcessedVideo3D.from_proto(pb)
+    d1 = pv3d.to_dict()
+    d2 = pv3ds[0].to_dict()
+    s1 = json.dumps(d1, indent=4)
+    s2 = json.dumps(d2, indent=4)
+    # floats were converted from 0 to 0.0
+    # some other floating point rounding occurred; pv3ds is using doubles (python 64-bit float), protocol buffers is using 32-bit float
+    # should just switch to doubles everywhere!
+    assert len(s1) == len(s2)
+    assert s1 == s2
 
 class NullPoseExtractor:
     def extract(self, image, timestamp=0):
