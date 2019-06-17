@@ -266,6 +266,16 @@ class ImmutableCamera:
             raise ValueError("Translation vector not 3x1")
         return cls(name=name, matrix=matrix, distortion=distortion, rotation=rotation, translation=translation)
 
+    @classmethod
+    def from_charuco_diamond(cls, image, camera_matix, distortion_coefficients, aruco_dict, target_ids):
+        """
+        :param image:
+        :param aruco_dict:
+        :param target_ids:
+        :return:
+        """
+        pass
+
     def undistort_points(self, pts):
         if pts.size == 0:
             return pts
@@ -414,9 +424,12 @@ class Pose2D:
 
         joint_color = (0, 255, 0)
 
+        height = canvas.shape[0]
+        width = canvas.shape[1]
+
         for x, y in plottable_points:
             # draw keypoint on canvas
-            if (x > 0 and y > 0):
+            if (x > 0 and y > 0) and (x <= width and y <= height):
                 cv2.circle(canvas, (x, y), 4, joint_color, -1)
 
         if draw_limbs:
