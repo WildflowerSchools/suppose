@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package suppose;
+
+message Vector2f {
+    float x = 1;
+    float y = 2;
+}
+
+message Vector3f {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+}
+
+//message Array {
+//    int32 size = 1;
+//    repeated float data = 2;
+//}
+
+message Matrix {
+    int32 rows = 1;
+    int32 columns = 2;
+    repeated double data = 3;
+}
+
+message Camera {
+    string name = 1;
+    Matrix matrix = 2;
+    Matrix distortion = 3;
+    Matrix rotation = 4;
+    Matrix translation = 5;
+}
+
+message Pose2D {
+    message Keypoint2D {
+        Vector2f point = 1;
+        float score = 2;
+    }
+    repeated Keypoint2D keypoints = 1;
+    //map<string, Keypoint2D> keypoints = 1;
+}
+
+message ReprojectedPose2D {
+    message ReprojectedKeypoint2D {
+        Vector2f point = 1;
+        float error = 2;
+    }
+    repeated ReprojectedKeypoint2D keypoints = 1;
+    //map<string, ReprojectedKeypoint2D> keypoints = 1;
+}
+
+message Pose3D {
+    enum Type {
+        RECONSTRUCTED = 0;
+        TRACKED = 1;
+    }
+    message Keypoint3D {
+        // TODO: should this be doubles instead of floats?
+        Vector3f point = 1;
+        Vector3f std = 2;
+    }
+    Type type = 1;
+    float error = 2;
+    repeated Keypoint3D keypoints = 3;
+}
+
+message Frame {
+    double timestamp = 1;
+    repeated Pose2D poses = 2;
+}
+
+message Frame3D {
+    double timestamp = 1;
+    repeated Pose3D poses = 2;
+}
+
+message ProcessedVideo {
+    string camera = 1;
+    int32 width = 2;
+    int32 height = 3;
+    string file = 4;
+    string model = 5;
+    repeated Frame frames = 6;
+}
+
+message Room {
+    string name = 1;
+    repeated ProcessedVideo processed_videos = 2;
+}
+
+message ProcessedVideo3D {
+    string room = 1;
+    repeated Camera cameras = 2;
+    repeated Frame3D frames = 3;
+}
+
+message Image {
+    string type = 1;
+    bytes data = 2;
+}
+
+message File {
+    string path = 1;
+}
+
+service PoseExtractor {
+    rpc GetPose(Image) returns (Frame) {}
+    rpc StreamPoses(stream Image) returns (stream Frame) {}
+    rpc StreamPosesFromVideo(File) returns (stream Frame) {}
+}
+
+// {'directed': False,
+// 'multigraph': False,
+// 'graph': {},
+// 'nodes': [{'id': 'a'},
+//  {'id': 'b'},
+//  {'id': 'c'},
+//  {'id': 'd'},
+//  {'id': 'e'},
+//  {'id': 'f'}],
+// 'links': [{'weight': 0.6, 'source': 'a', 'target': 'b'},
+//  {'weight': 0.2, 'source': 'a', 'target': 'c'},
+//  {'weight': 0.3, 'source': 'a', 'target': 'd'},
+//  {'weight': 0.1, 'source': 'c', 'target': 'd'},
+//  {'weight': 0.7, 'source': 'c', 'target': 'e'},
+//  {'weight': 0.9, 'source': 'c', 'target': 'f'}]}
+message NXGraph {
+    message Node {
+        string id = 1;
+    }
+    message Link {
+        string source = 1;
+        string target = 2;
+        float weight = 3;
+        //map<string, Any> data = 3;
+    }
+    bool directed = 1;
+    bool multigraph = 2;
+    map<string, string> graph = 3;
+    repeated Node nodes = 4;
+    repeated Link links = 5;
+}

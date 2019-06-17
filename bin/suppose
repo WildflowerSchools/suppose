@@ -1,11 +1,17 @@
 #/usr/bin/env python
 import click
-from logbook import RotatingFileHandler
+from logbook import RotatingFileHandler, Logger
 from suppose.pose2d import extract as _extract, combine as _combine, bundle_multiview as __bundle_multiview
 from suppose.pose3d import reconstruct3d as _reconstruct3d
+from suppose import proto
+import datetime
+from tqdm import tqdm
+
 
 log_handler = RotatingFileHandler('suppose.log')
 log_handler.push_application()
+
+log = Logger('suppose')
 
 
 @click.group()
@@ -19,11 +25,12 @@ def cli():
 @click.option("--write-output/--no-write-output", default=True, show_default=True, help="Write poses to file")
 @click.option("--display-progress/--no-display-progress", default=True, show_default=True, help="Show progress bar")
 @click.option("--file-datetime-format", default="video_%Y-%m-%d-%H-%M-%S.mp4", show_default=True, help="strptime formatter to extract datetime from filename")
-def extract(videos, model, resolution, write_output, display_progress, file_datetime_format):
+@click.option("--overwrite-output/--no-overwrite-output", default=False, show_default=True, help="Overwrite output file; skips file otherwise")
+def extract(videos, model, resolution, write_output, display_progress, file_datetime_format, overwrite_output):
     """
     Extract human poses in videos.
     """
-    _extract(videos, model, resolution, write_output, display_progress, file_datetime_format)
+    _extract(videos, model, resolution, write_output, display_progress, file_datetime_format, overwrite_output)
 
 
 @cli.command()
@@ -54,6 +61,36 @@ def reconstruct3d(file, camera_calibration, output, debug_output):
     Find 3d reconstructed poses from 2d poses from mulitple camera views.
     """
     _reconstruct3d(file, camera_calibration, output, debug_output)
+
+
+@cli.command()
+@click.option("--input-files", required=True, help="Input files glob. Parent path of file must contain camera name.")
+@click.option('--cameras', '-c', multiple=True, required=True, help="camera calibration name->file mapping")
+@click.option('--output-file-pattern', required=False, default="ProcessedVideo3D_{}.pb", help="Output file pattern with {} as placeholder for data")
+def batch_reconstruct3d(input_files, cameras, output_file_pattern):
+    log.info("3D Reconstruction from multiple input files from multiple cameras")
+    log.info("input files: {}".format(input_files))
+    log.info("cameras: {}".format(cameras))
+    camera_list = []
+    for c in cameras:
+        name, camera_file = c.split(',')
+        camera = proto.ImmutableCamera.from_legacy_json_file(camera_file, name=name)
+        camera_list.append(camera)
+
+    batch = proto.Batch.from_search(camera_list, input_files)
+    pv3ds = batch.process(None, read_from_cache=False, write_to_cache=False)
+    DATETIME_FORMAT="%Y-%m-%d-%H-%M-%S"
+    total = list(batch.listings.values())[0].size
+    pbar = tqdm(total=total)
+    for pv3d in pv3ds:
+        ts = pv3d.start_time
+        date_text = datetime.datetime.fromtimestamp(ts).strftime(DATETIME_FORMAT)
+        output_filename = output_file_pattern.format(date_text)
+        pv3d.to_proto_file(output_filename)
+        pbar.update(1)
+        pbar.set_description(output_filename)
+    pbar.close()
+
 
 
 if __name__ == '__main__':

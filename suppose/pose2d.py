@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 from .common import timing
+from suppose import suppose_pb2
+from suppose import proto
 
 
 log = Logger('pose2d')
@@ -44,29 +46,52 @@ def tfpose_to_pandas(poses, frame_width, frame_height):
     return df
 
 
+def human_to_pose2d(human, frame_width, frame_height):
+    body_parts = human.body_parts
+    pose2d = proto.Pose2D()
+    for idx in range(MAX_NUM_BODY_PARTS):
+        keypoint = proto.Keypoint2D()
+        try:
+            body_part = body_parts[idx]
+        except KeyError:
+            pass
+        else:
+            keypoint.point.x = body_part.x * frame_width
+            keypoint.point.y = body_part.y * frame_height
+            keypoint.score = body_part.score
+        pose2d.keypoints.append(keypoint)
+    return pose2d
+
+
 def parse_datetime(a, format):
     return datetime.strptime(a, format)
 
 
 @timing
-def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
-    log.info("Processing {}".format(video))
+def extract_poses(input_file, e, model_name, datetime_start):
+    log.info("Processing {}".format(input_file))
     if datetime_start is None:
         datetime_start = datetime.fromtimestamp(0)
-    cap = cv2.VideoCapture(video)
+    cap = cv2.VideoCapture(input_file)
     video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     count = 0
     poses = []
-    time0 = time.time()
     if cap.isOpened() is False:
-        raise IOError("Error reading file {}".format(video))
+        raise IOError("Error reading file {}".format(input_file))
 
     timestamps = []
     frame_numbers = []
+
+    processed_video = proto.ProcessedVideo(width=width, height=height, file=input_file, model=model_name)
+
     pbar = tqdm(total=video_length)
+    time0 = time.time()
     while cap.isOpened():
+        # debug
+        #if count >= 10:
+        #    break
         offset = cap.get(cv2.CAP_PROP_POS_MSEC)
         ret_val, image = cap.read()
         if not ret_val:
@@ -77,33 +102,24 @@ def extract_poses(video, e, model_name, write_output=True, datetime_start=None):
         count += 1
         humans = e.inference(image, resize_to_default=True, upsample_size=4.0)
         poses.append(humans)
+        frame = proto.Frame(timestamp=timestamp.timestamp())
+        for human in humans:
+            frame.poses.append(human_to_pose2d(human, width, height))
+        processed_video.frames.append(frame)
         pbar.update(1)
     time1 = time.time()
     log.info("{} fps".format((count / (time1 - time0))))
     log.info("{} s".format(time1 - time0))
-
-    if write_output:
-        df_poses_pickle_filename = '{}__poses_df-{}.pickle.xz'.format(video, model_name)
-        df_poses_json_filename = '{}__poses_df-{}.json.xz'.format(video, model_name)
-        df_poses = tfpose_to_pandas(poses, width, height)
-        df_poses.index = timestamps
-        df_poses['file'] = os.path.basename(video)
-        df_poses['model'] = model_name
-        df_poses['frame'] = frame_numbers
-        for column in ('file', 'model'):
-            df_poses[column] = df_poses[column].astype('category')
-
-        log.info("Writing to: {}".format(df_poses_pickle_filename))
-        df_poses.to_pickle(df_poses_pickle_filename, compression="xz")
-        log.info("Writing to: {}".format(df_poses_json_filename))
-        df_poses.to_json(df_poses_json_filename, compression="xz")
-
     cap.release()
     pbar.close()
+    #log.info("Converting to protobuf")
+    return processed_video
+
+
 
 
 @timing
-def extract(videos, model, resolution, write_output, display_progress, file_datetime_format):
+def extract(videos, model, resolution, write_output, display_progress, file_datetime_format, overwrite_output):
     log.info("Starting Pose Extractor")
     log.info("videos: {}".format(videos))
     log.info("model: {}".format(model))
@@ -124,13 +140,24 @@ def extract(videos, model, resolution, write_output, display_progress, file_date
             display_filename = os.path.join(*f.rsplit("/", maxsplit=4)[-2:])
             log.info("File {} / {} - {}".format(idx+1, length, f))
             tqdm_files.set_description(display_filename)
+            if write_output:
+                output_filename = "{}__proto-ProcessedVideo-{}.pb".format(f, model)
+                if not overwrite_output and os.path.exists(output_filename):
+                    log.info("Skipping file {} because output {} exists".format(f, output_filename))
+                    continue
+
             # get timestamp of first frame of video via filename
             if file_datetime_format != "":
                 datetime_start = parse_datetime(os.path.basename(f), file_datetime_format)
             else:
                 datetime_start = None
-            extract_poses(f, e, model, write_output, datetime_start)
-
+            try:
+                processed_video = extract_poses(f, e, model, datetime_start)
+                if write_output:
+                    processed_video.to_proto_file(output_filename)
+            except IOError as exc:
+                log.error(exc)
+                log.info("Skipping file {} do to error".format(f))
     log.info("Done!")
 
 
