@@ -1,0 +1,32 @@
+FROM ubuntu:18.04
+
+MAINTAINER lue.her@gmail.com
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        wget \
+        bzip2 \
+        apt-transport-https \
+        ca-certificates \
+        curl \
+        software-properties-common \
+        && \
+    rm -rf /var/lib/apt/lists/*
+
+ARG MINICONDA_FILE=Miniconda3-latest-Linux-x86_64.sh
+ARG ANACONDA_PATH=/opt/conda
+ENV PATH ${ANACONDA_PATH}/bin:$PATH
+
+RUN wget https://repo.continuum.io/miniconda/${MINICONDA_FILE} && \
+    /bin/sh ${MINICONDA_FILE} -b -p ${ANACONDA_PATH} && \
+    rm ${MINICONDA_FILE} && \
+    ${ANACONDA_PATH}/bin/conda config --add channels conda-forge && \
+    ${ANACONDA_PATH}/bin/conda config --set channel_priority strict && \
+    ${ANACONDA_PATH}/bin/conda install -y python=3.7 tensorflow click pandas tqdm numpy opencv cython && \
+    ${ANACONDA_PATH}/bin/conda clean --all -y && \
+    pip install --no-cache-dir logbook
+
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
+
