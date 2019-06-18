@@ -535,11 +535,13 @@ class ProcessedVideo:
             return None
 
     @classmethod
-    def from_video(cls, file, extractor, read_from_cache=True, write_to_cache=True, cache_dir=None, cache_suffix="__proto-ProcessedVideo-cmu.pb"):
+    def from_video(cls, file, extractor, read_from_cache=True, write_to_cache=True, cache_dir=None, cache_suffix="__proto-ProcessedVideo-cmu.pb", draw_viz=False, viz_suffix="__proto-ProcessedVideo-cmu_viz.mp4"):
         file = os.path.abspath(file)
         if cache_dir is None:
             cache_dir = os.path.abspath(os.path.dirname(file))
         cached_result_file = os.path.join(cache_dir, os.path.basename(file) + cache_suffix)
+        viz_result_file = os.path.join(cache_dir, os.path.basename(file) + viz_suffix)
+
         if read_from_cache:
             o = cls.from_proto_file(cached_result_file)
             return o
@@ -547,6 +549,7 @@ class ProcessedVideo:
         # hardcode timestamp format for now
         timestamp_start = cls._get_timestamp_from_file(file, "video_%Y-%m-%d-%H-%M-%S.mp4")
         cap = cv2.VideoCapture(file)
+        out = None
         o = cls(file=file)
         while True:
             time_offset = cap.get(cv2.CAP_PROP_POS_MSEC)
@@ -556,6 +559,14 @@ class ProcessedVideo:
             timestamp = timestamp_start + datetime.timedelta(milliseconds=time_offset)
             frame = extractor.extract(image, timestamp=timestamp.timestamp())
             o.frames.append(frame)
+            if draw_viz:
+                viz = frame.draw_on_image(image, copy=True)
+                if out is None:
+                    fourcc = cv2.VideoWriter_fourcc(*'avc1')
+                    out = cv2.VideoWriter(viz_result_file, fourcc, 10,
+                                         (viz.shape[1], viz.shape[0]))
+                out.write(viz)
+
         if write_to_cache:
             if os.path.exists(cached_result_file):
                 print("Warning: overriding cached result '{}'".format(cached_result_file))
@@ -999,8 +1010,6 @@ class Batch:
                 pv2ds.append(pv2d)
             pv3d = ProcessedVideo3D.from_processed_video_2d(pv2ds=pv2ds, cameras=cameras)
             yield pv3d
-
-
 
 
 

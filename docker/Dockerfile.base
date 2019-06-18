@@ -6,6 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         wget \
         bzip2 \
+        apt-transport-https \
+        ca-certificates \
+        curl \
+        software-properties-common \
         && \
     rm -rf /var/lib/apt/lists/*
 
@@ -16,11 +20,11 @@ ENV PATH ${ANACONDA_PATH}/bin:$PATH
 RUN wget https://repo.continuum.io/miniconda/${MINICONDA_FILE} && \
     /bin/sh ${MINICONDA_FILE} -b -p ${ANACONDA_PATH} && \
     rm ${MINICONDA_FILE} && \
-    ${ANACONDA_PATH}/bin/conda install -y python=3.6 cudatoolkit=9.0 tensorflow-gpu click pandas tqdm numpy opencv && \
+    ${ANACONDA_PATH}/bin/conda config --add channels conda-forge && \
+    ${ANACONDA_PATH}/bin/conda config --set channel_priority strict && \
+    ${ANACONDA_PATH}/bin/conda install -y python=3.7 cudatoolkit=9.0 tensorflow-gpu click pandas tqdm numpy opencv cython && \
     ${ANACONDA_PATH}/bin/conda clean --all -y && \
-    pip install --no-cache-dir logbook 
+    pip install --no-cache-dir logbook
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
-
-
