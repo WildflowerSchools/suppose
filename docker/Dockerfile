@@ -13,7 +13,7 @@ RUN git clone https://github.com/ildoonet/tf-pose-estimation.git && \
     git checkout 7353c148d3d9b2609d7592be47e9844d6ea4f46f && \
     python setup.py install
 
-ENV SUPPOSE_GIT_REVISION 11588d8cca5e2640bfe427036941173dffb8ab51
+ENV SUPPOSE_GIT_REVISION 5747757ca6be0fef1464299c71863d371fb45c1c
 
 RUN git clone https://github.com/WildflowerSchools/suppose.git && \
     cd suppose && \
