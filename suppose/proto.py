@@ -565,11 +565,11 @@ class ProcessedVideo:
         cap = cv2.VideoCapture(file)
         out = None
         o = cls(file=file)
-        DEBUG_COUNTER = 0
+        #DEBUG_COUNTER = 0
         while True:
-            DEBUG_COUNTER += 1
-            if DEBUG_COUNTER >= 3:
-                break
+            #DEBUG_COUNTER += 1
+            #if DEBUG_COUNTER >= 3:
+            #    break
             time_offset = cap.get(cv2.CAP_PROP_POS_MSEC)
             ret, image = cap.read()
             if not ret:
