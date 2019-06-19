@@ -6,6 +6,9 @@ from suppose.pose3d import reconstruct3d as _reconstruct3d
 from suppose import proto
 import datetime
 from tqdm import tqdm
+from tf_pose.estimator import TfPoseEstimator
+from tf_pose.networks import get_graph_path, model_wh
+from suppose.pose_extractor import PoseExtractor
 
 
 log_handler = RotatingFileHandler('suppose.log')
@@ -93,6 +96,20 @@ def batch_reconstruct3d(input_files, cameras, output_file_pattern, draw_viz):
         pbar.set_description(output_filename)
     pbar.close()
 
+
+@cli.command()
+@click.option("--input-files", required=True, help="Input files glob. Parent path of file must contain camera name.")
+@click.option("--draw-viz", default=False, show_default=True, help="Draw and output 2d reprojection; requires videos to be present")
+@click.option("--resolution", default="432x368", show_default=True, help="network input resolution")
+@click.option("--model", default="cmu", show_default=True, help="feature extractor; cmu or mobilenet_thin")
+def batch_extract(input_files, draw_viz, resolution, model):
+    log.info("3D Reconstruction from multiple input files from multiple cameras")
+    log.info("input files: {}".format(input_files))
+    log.info("draw_viz: {}".format(draw_viz))
+
+    extractor = PoseExtractor()
+    app = proto.App()
+    app.process_2d(extractor, input_files)
 
 
 if __name__ == '__main__':

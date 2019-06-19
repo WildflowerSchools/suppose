@@ -16,6 +16,9 @@ from matplotlib.axes import Axes
 import glob
 import os
 import datetime
+import re
+from tqdm import tqdm
+from logbook import Logger
 
 from suppose.common import rmse, LIMB_COLORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES
 from tf_pose.common import CocoPairsRender
@@ -535,7 +538,7 @@ class ProcessedVideo:
             return None
 
     @classmethod
-    def from_video(cls, file, extractor, read_from_cache=True, write_to_cache=True, cache_dir=None, cache_suffix="__proto-ProcessedVideo-cmu.pb", draw_viz=False, viz_suffix="__proto-ProcessedVideo-cmu_viz.mp4"):
+    def from_video(cls, file, extractor, read_from_cache=True, write_to_cache=True, cache_dir=None, cache_suffix="__proto-ProcessedVideo-cmu.pb", draw_viz=False, viz_suffix="__proto-ProcessedVideo-cmu_viz.mp4", timestamp_start=datetime.datetime.fromtimestamp(0)):
         file = os.path.abspath(file)
         if cache_dir is None:
             cache_dir = os.path.abspath(os.path.dirname(file))
@@ -546,12 +549,27 @@ class ProcessedVideo:
             o = cls.from_proto_file(cached_result_file)
             return o
 
-        # hardcode timestamp format for now
-        timestamp_start = cls._get_timestamp_from_file(file, "video_%Y-%m-%d-%H-%M-%S.mp4")
+        # try:
+        #     # legacy format
+        #     timestamp_start = cls._get_timestamp_from_file(file, "video_%Y-%m-%d-%H-%M-%S.mp4")
+        # except ValueError:
+        #     # using passed in regex
+        #     m = re.search(timestamp_regex, file)
+        #     if m is None:
+        #         raise ValueError("Could not decode timestamp from file name")
+        #     d = m.groupdict()
+        #     timestamp_str = "{year}-{month}-{day}-{hour}-{minute}-{second}".format(**d)
+        #     # lazy way to get validation
+        #     timestamp_start = cls._get_timestamp_from_file(timestamp_str, "%Y-%m-%d-%H-%M-%S")
+
         cap = cv2.VideoCapture(file)
         out = None
         o = cls(file=file)
+        DEBUG_COUNTER = 0
         while True:
+            DEBUG_COUNTER += 1
+            if DEBUG_COUNTER >= 3:
+                break
             time_offset = cap.get(cv2.CAP_PROP_POS_MSEC)
             ret, image = cap.read()
             if not ret:
@@ -938,6 +956,75 @@ class Pose3DGraph:
                 best_edges.append(best_edge)
         graph_best.add_edges_from(best_edges)
         return graph_best
+
+
+@attr.s
+class VideoFile:
+    file: str = attr.ib()
+    timestamp: str = attr.ib()
+    camera: str = attr.ib()
+
+
+@attr.s
+class VideoIndex:
+    video_files: typing.List[VideoFile] = attr.ib(default=attr.Factory(list), metadata={"type": VideoFile})
+
+    def __attrs_post_init__(self):
+        d = [attr.asdict(vf) for vf in self.video_files]
+        df = pd.DataFrame.from_dict(d)
+        object.__setattr__(self, "_df", df)
+
+    def groupby_iter(self, column):
+        for gr, items in sorted(self._df.groupby(column)):
+            yield gr, [VideoFile(*args) for args in items[['file','timestamp','camera']].values]
+
+    @classmethod
+    def create_from_search(cls, glob_pattern='*.mp4', timestamp_regex=r"^.*\/(?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\/(?P<camera_id>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})\/(?P<hour>\d{2})\/(?P<filename>(?P<minute>\d{2})-(?P<second>\d{2}).mp4)$"):
+
+        files = glob.glob(glob_pattern)
+        vfs = []
+        for file in files:
+            m = re.search(timestamp_regex, file)
+            if m is None:
+                raise ValueError("Could not decode timestamp from file name")
+            d = m.groupdict()
+            timestamp_str = "{year}-{month}-{day}-{hour}-{minute}-{second}".format(**d)
+            # lazy way to get validation
+            timestamp = datetime.datetime.strptime(timestamp_str, "%Y-%m-%d-%H-%M-%S")
+            camera = d['camera_id']
+            vf = VideoFile(file=file, timestamp=timestamp, camera=camera)
+            vfs.append(vf)
+        o = cls(video_files=vfs)
+        return o
+
+@attr.s
+class App:
+    def process_2d(self, extractor, glob_pattern='*.mp4', display_progress=True):
+        log = Logger('App')
+        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern)
+        log.info("Files to process: {}".format(vi.video_files))
+        length = len(vi.video_files)
+        processed_videos = []
+        files_by_timestamp = list(vi.groupby_iter('timestamp'))
+        disable_tqdm = not display_progress
+        with tqdm(files_by_timestamp, disable=disable_tqdm) as tqdm_files:
+            for timestamp, video_files in tqdm_files:
+                pvs = []
+                display_timestamp = timestamp.isoformat()
+                tqdm_files.set_description(display_timestamp)
+                with tqdm(video_files, disable=disable_tqdm) as tqdm_video_file:
+                    for video_file in tqdm_video_file:
+                        display_filename = "{} : {}".format(video_file.camera, video_file.file)
+                        tqdm_video_file.set_description(display_filename)
+                        pv = ProcessedVideo.from_video(video_file.file,
+                                                       extractor,
+                                                       read_from_cache=False,
+                                                       timestamp_start=timestamp,
+                                                       draw_viz=True)
+                        pvs.append(pv)
+                processed_videos.append((timestamp, pvs))
+        return processed_videos
+
 
 @attr.s
 class VideoListing:
