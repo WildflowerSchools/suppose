@@ -13,8 +13,11 @@ RUN git clone https://github.com/ildoonet/tf-pose-estimation.git && \
     git checkout 7353c148d3d9b2609d7592be47e9844d6ea4f46f && \
     python setup.py install
 
+ENV SUPPOSE_GIT_REVISION 11588d8cca5e2640bfe427036941173dffb8ab51
+
 RUN git clone https://github.com/WildflowerSchools/suppose.git && \
     cd suppose && \
+    git checkout $SUPPOSE_GIT_REVISION
     python setup.py install
 
 ENTRYPOINT ["/opt/conda/bin/suppose"]
