@@ -8,9 +8,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         && \
     rm -rf /var/lib/apt/lists/*
 
+ENV TF_POSE_GIT_REVISION 7353c148d3d9b2609d7592be47e9844d6ea4f46f
 RUN git clone https://github.com/ildoonet/tf-pose-estimation.git && \
     cd tf-pose-estimation && \
-    git checkout 7353c148d3d9b2609d7592be47e9844d6ea4f46f && \
+    git checkout $TF_POSE_GIT_REVISION && \
     python setup.py install
 
 ENV SUPPOSE_GIT_REVISION 5747757ca6be0fef1464299c71863d371fb45c1c

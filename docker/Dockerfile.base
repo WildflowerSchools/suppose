@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04
+FROM nvidia/cuda:10.0-cudnn7-runtime-ubuntu18.04
 
 MAINTAINER lue.her@gmail.com
 
@@ -22,7 +22,7 @@ RUN wget https://repo.continuum.io/miniconda/${MINICONDA_FILE} && \
     rm ${MINICONDA_FILE} && \
     ${ANACONDA_PATH}/bin/conda config --add channels conda-forge && \
     ${ANACONDA_PATH}/bin/conda config --set channel_priority strict && \
-    ${ANACONDA_PATH}/bin/conda install -y python=3.7 cudatoolkit=9.0 tensorflow-gpu click pandas tqdm numpy opencv cython && \
+    ${ANACONDA_PATH}/bin/conda install -y python=3.7 cudatoolkit=10.0 tensorflow-gpu click pandas tqdm numpy opencv cython && \
     ${ANACONDA_PATH}/bin/conda clean --all -y && \
     pip install --no-cache-dir logbook
 
