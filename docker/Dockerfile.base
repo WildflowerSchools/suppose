@@ -24,7 +24,7 @@ RUN wget https://repo.continuum.io/miniconda/${MINICONDA_FILE} && \
     ${ANACONDA_PATH}/bin/conda config --set channel_priority strict && \
     ${ANACONDA_PATH}/bin/conda install -y python=3.7 cudatoolkit=10.0 click pandas tqdm numpy opencv cython && \
     ${ANACONDA_PATH}/bin/conda clean --all -y
-    
+
 RUN pip install --no-cache-dir logbook tensorflow-gpu==1.14.0
 
 ENV LC_ALL=C.UTF-8

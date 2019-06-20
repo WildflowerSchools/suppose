@@ -111,6 +111,25 @@ def batch_extract(input_files, draw_viz, resolution, model):
     app = proto.App()
     app.process_2d(extractor, input_files)
 
+@cli.command()
+@click.option("--input-files", required=True, help="Input files glob. Parent path of file must contain camera name.")
+@click.option('--cameras', '-c', multiple=True, required=True, help="camera calibration name->file mapping")
+@click.option('--output-file-pattern', required=False, default="ProcessedVideo3D_{}.pb", help="Output file pattern with {} as placeholder for data")
+@click.option("--draw-viz", default=False, show_default=True, help="Draw and output 2d reprojection; requires videos to be present")
+def batch_3d(input_files, cameras, output_file_pattern, draw_viz):
+    log.info("3D Reconstruction from multiple input files from multiple cameras")
+    log.info("input files: {}".format(input_files))
+    log.info("cameras: {}".format(cameras))
+    log.info("draw_viz: {}".format(draw_viz))
+    camera_list = {}
+    for c in cameras:
+        name, camera_file = c.split(',')
+        camera = proto.ImmutableCamera.from_legacy_json_file(camera_file, name=name)
+        camera_list[name] = camera
+
+    app = proto.App()
+    app.process_3d(cameras, glob_pattern=input_files)
+
 
 if __name__ == '__main__':
     cli()

@@ -1025,6 +1025,42 @@ class App:
                 processed_videos.append((timestamp, pvs))
         return processed_videos
 
+    def process_3d(self, cameras: typing.Mapping[str, ImmutableCamera], glob_pattern='*.mp4', display_progress=True, output_file_pattern="ProcessedVideo3D_{}.pb"):
+        log = Logger('App')
+        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern)
+        log.info("Files to process: {}".format(vi.video_files))
+        length = len(vi.video_files)
+        processed_videos = []
+        files_by_timestamp = list(vi.groupby_iter('timestamp'))
+
+        DATETIME_FORMAT="%Y-%m-%d-%H-%M-%S"
+
+        disable_tqdm = not display_progress
+        with tqdm(files_by_timestamp, disable=disable_tqdm) as tqdm_files:
+            for timestamp, video_files in tqdm_files:
+                pvs = []
+                display_timestamp = timestamp.isoformat()
+                tqdm_files.set_description(display_timestamp)
+                with tqdm(video_files, disable=disable_tqdm) as tqdm_video_file:
+                    cams = []
+                    for video_file in tqdm_video_file:
+                        display_filename = "{} : {}".format(video_file.camera, video_file.file)
+                        tqdm_video_file.set_description(display_filename)
+                        pv = ProcessedVideo.from_video(video_file.file,
+                                                       None,
+                                                       read_from_cache=True,
+                                                       write_to_cache=False,
+                                                       timestamp_start=timestamp,
+                                                       draw_viz=False)
+                        pvs.append(pv)
+                        cams.append[cameras[video_file.camera]]
+                    pv3d = ProcessedVideo3D.from_processed_video_2d(pv2ds=pvs, cameras=cams)
+
+                    date_text = timestamp.strftime(DATETIME_FORMAT)
+                    output_filename = output_file_pattern.format(date_text)
+                    pv3d.to_proto_file(output_filename)
+                    processed_videos.append((timestamp, pv3d))
+        return processed_videos
 
 @attr.s
 class VideoListing:
