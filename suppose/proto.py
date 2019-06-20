@@ -1053,7 +1053,7 @@ class App:
                                                        timestamp_start=timestamp,
                                                        draw_viz=False)
                         pvs.append(pv)
-                        cams.append[cameras[video_file.camera]]
+                        cams.append(cameras[video_file.camera])
                     pv3d = ProcessedVideo3D.from_processed_video_2d(pv2ds=pvs, cameras=cams)
 
                     date_text = timestamp.strftime(DATETIME_FORMAT)

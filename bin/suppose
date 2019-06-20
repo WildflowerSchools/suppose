@@ -121,14 +121,14 @@ def batch_3d(input_files, cameras, output_file_pattern, draw_viz):
     log.info("input files: {}".format(input_files))
     log.info("cameras: {}".format(cameras))
     log.info("draw_viz: {}".format(draw_viz))
-    camera_list = {}
+    camera_map = {}
     for c in cameras:
         name, camera_file = c.split(',')
         camera = proto.ImmutableCamera.from_legacy_json_file(camera_file, name=name)
-        camera_list[name] = camera
+        camera_map[name] = camera
 
     app = proto.App()
-    app.process_3d(cameras, glob_pattern=input_files)
+    app.process_3d(camera_map, glob_pattern=input_files)
 
 
 if __name__ == '__main__':
