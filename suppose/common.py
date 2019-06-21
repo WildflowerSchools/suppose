@@ -11,6 +11,9 @@ from tf_pose.common import CocoPairsRender, CocoColors, CocoPart
 log = Logger('common')
 
 
+TIMESTAMP_REGEX = r"^.*\/capucine\/videos\/(?P<camera_id>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})\/(?P<date>(?P<year>\d{4})\/(?P<month>\d{2})\/(?P<day>\d{2}))\/(?P<hour>\d{2})\/(?P<filename>(?P<minute>\d{2})-(?P<second>\d{2}).mp4)$"
+
+
 def timing(f):
     @wraps(f)
     def _timing(*args, **kwargs):

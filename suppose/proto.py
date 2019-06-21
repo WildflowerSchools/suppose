@@ -20,7 +20,7 @@ import re
 from tqdm import tqdm
 from logbook import Logger
 
-from suppose.common import rmse, LIMB_COLORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES
+from suppose.common import rmse, LIMB_COLORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES, TIMESTAMP_REGEX
 from tf_pose.common import CocoPairsRender
 
 import matplotlib.pyplot as plt
@@ -32,7 +32,6 @@ import typing
 from typing import TypeVar, Type
 
 T = TypeVar('T', bound='Parent')
-
 
 def load_protobuf(file, pb_cls):
     """
@@ -979,7 +978,7 @@ class VideoIndex:
             yield gr, [VideoFile(*args) for args in items[['file','timestamp','camera']].values]
 
     @classmethod
-    def create_from_search(cls, glob_pattern='*.mp4', timestamp_regex=r"^.*\/(?P<date>(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2}))\/(?P<camera_id>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})\/(?P<hour>\d{2})\/(?P<filename>(?P<minute>\d{2})-(?P<second>\d{2}).mp4)$"):
+    def create_from_search(cls, glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX):
 
         files = glob.glob(glob_pattern)
         vfs = []
@@ -999,9 +998,9 @@ class VideoIndex:
 
 @attr.s
 class App:
-    def process_2d(self, extractor, glob_pattern='*.mp4', display_progress=True):
+    def process_2d(self, extractor, glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, draw_viz=True):
         log = Logger('App')
-        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern)
+        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=timestamp_regex)
         log.info("Files to process: {}".format(vi.video_files))
         length = len(vi.video_files)
         processed_videos = []
@@ -1020,14 +1019,14 @@ class App:
                                                        extractor,
                                                        read_from_cache=False,
                                                        timestamp_start=timestamp,
-                                                       draw_viz=True)
+                                                       draw_viz=draw_viz)
                         pvs.append(pv)
                 processed_videos.append((timestamp, pvs))
         return processed_videos
 
-    def process_3d(self, cameras: typing.Mapping[str, ImmutableCamera], glob_pattern='*.mp4', display_progress=True, output_file_pattern="ProcessedVideo3D_{}.pb"):
+    def process_3d(self, cameras: typing.Mapping[str, ImmutableCamera], glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, output_file_pattern="ProcessedVideo3D_{}.pb"):
         log = Logger('App')
-        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern)
+        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=TIMESTAMP_REGEX)
         log.info("Files to process: {}".format(vi.video_files))
         length = len(vi.video_files)
         processed_videos = []
