@@ -2,7 +2,7 @@
 import click
 from logbook import RotatingFileHandler, Logger
 
-from common import TIMESTAMP_REGEX
+from suppose.common import TIMESTAMP_REGEX
 from suppose.pose2d import extract as _extract, combine as _combine, bundle_multiview as __bundle_multiview
 from suppose.pose3d import reconstruct3d as _reconstruct3d
 from suppose import proto
