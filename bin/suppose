@@ -101,7 +101,7 @@ def batch_reconstruct3d(input_files, cameras, output_file_pattern, draw_viz):
 
 @cli.command()
 @click.option("--input-files", required=True, help="Input files glob. Parent path of file must contain camera name.")
-@click.option("--draw-viz", default=False, show_default=True, help="Draw and output 2d reprojection; requires videos to be present")
+@click.option("--draw-viz", default=True, show_default=True, help="Draw and output 2d reprojection; requires videos to be present")
 @click.option("--resolution", default="432x368", show_default=True, help="network input resolution")
 @click.option("--model", default="cmu", show_default=True, help="feature extractor; cmu or mobilenet_thin")
 @click.option("--timestamp-regex", default=TIMESTAMP_REGEX, show_default=True, help="Regular expression to extract date and time from full path of file.")
