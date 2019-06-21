@@ -18,7 +18,7 @@ RUN git clone https://github.com/ildoonet/tf-pose-estimation.git && \
     cd .. && \
     rm -rf tf-pose-estimation
 
-ENV SUPPOSE_GIT_REVISION 2338a70aa99cce02b5e14870740b73d4266300e3
+ENV SUPPOSE_GIT_REVISION 26a58db78c1f741c73ea2adf221c1902a957a29c
 RUN git clone https://github.com/WildflowerSchools/suppose.git && \
     cd suppose && \
     git checkout $SUPPOSE_GIT_REVISION && \
