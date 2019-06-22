@@ -902,7 +902,7 @@ class Pose3DGraph:
 
 
     @staticmethod
-    def graph_from_frames(frames, cameras):
+    def graph_from_frames(frames, cameras, max_error=30):
         # TODO: make camera object
         # TODO: make cameras and poses hashable
         camera_index = dict(zip((id(c) for c in cameras), itertools.count()))
@@ -914,6 +914,8 @@ class Pose3DGraph:
             pose_b_indices = dict(zip((id(p) for p in frame_b.poses), itertools.count()))
             for pose_a, pose_b in itertools.product(frame_a.poses, frame_b.poses):
                 pose3d = Pose3D.from_2d(pose_a, pose_b, camera_a, camera_b)
+                if np.isnan(pose3d.error) or pose3d.error > max_error:
+                    continue
                 camera_a_index = camera_index[id(camera_a)]
                 camera_b_index = camera_index[id(camera_b)]
                 pose_a_index = pose_a_indices[id(pose_a)]
