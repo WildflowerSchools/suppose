@@ -139,5 +139,23 @@ def batch_3d(input_files, cameras, output_file_pattern, draw_viz):
     app.process_3d(camera_map, glob_pattern=input_files)
 
 
+@cli.command()
+@click.option("--input-files", required=True, help="Input files glob. Parent path of file must contain camera name.")
+@click.option('--cameras', '-c', multiple=True, required=True, help="camera calibration name->file mapping")
+@click.option('--processed-video-file-pattern', required=False, default="ProcessedVideo3D_{}.pb", help="ProcessedVideo3D protobuf iInput file pattern with {} as placeholder for data")
+def draw_3d(input_files, cameras, processed_video_file_pattern, draw_viz):
+    log.info("3D Reconstruction from multiple input files from multiple cameras")
+    log.info("input files: {}".format(input_files))
+    log.info("cameras: {}".format(cameras))
+    camera_map = {}
+    for c in cameras:
+        name, camera_file = c.split(',')
+        camera = proto.ImmutableCamera.from_legacy_json_file(camera_file, name=name)
+        camera_map[name] = camera
+
+    app = proto.App()
+    app.draw_3d(camera_map, glob_pattern=input_files)
+
+
 if __name__ == '__main__':
     cli()

@@ -1063,6 +1063,61 @@ class App:
                     processed_videos.append((timestamp, pv3d))
         return processed_videos
 
+    def draw_3d(self, cameras: typing.Mapping[str, ImmutableCamera], glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, processed_video_file_pattern="ProcessedVideo3D_{}.pb"):
+        log = Logger('App')
+        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=TIMESTAMP_REGEX)
+        log.info("Files to process: {}".format(vi.video_files))
+        length = len(vi.video_files)
+        processed_videos = []
+        files_by_timestamp = list(vi.groupby_iter('timestamp'))
+
+        DATETIME_FORMAT="%Y-%m-%d-%H-%M-%S"
+
+        disable_tqdm = not display_progress
+        with tqdm(files_by_timestamp, disable=disable_tqdm) as tqdm_files:
+            for timestamp, video_files in tqdm_files:
+                #pvs = []
+                display_timestamp = timestamp.isoformat()
+                tqdm_files.set_description(display_timestamp)
+                with tqdm(video_files, disable=disable_tqdm) as tqdm_video_file:
+                    date_text = timestamp.strftime(DATETIME_FORMAT)
+                    input_filename = processed_video_file_pattern.format(date_text)
+                    pv3d = ProcessedVideo3D.from_proto_file(input_filename)
+
+                    #cams = []
+                    for video_file in tqdm_video_file:
+                        display_filename = "{} : {}".format(video_file.camera, video_file.file)
+                        tqdm_video_file.set_description(display_filename)
+
+                        ## TODO
+                        # 1. Open video File video_file.file
+                        #    Open output video file
+                        # 2. For each video frame and corresponding pv3d frame
+                        # 3.   Project 3d points to video frame
+                        # 4.   Append viz to output video file
+                        cap = cv2.VideoCapture(video_file.file)
+                        index = 0
+                        out = None
+                        while True:
+                            ret, frame = cap.read()
+                            if not ret:
+                                break
+                            try:
+                                pv3d_frame = pv3d.frames[index]
+                            except IndexError:
+                                continue
+
+                            frame2d = pv3d_frame.project_2d(cameras[video_file.camera])
+                            viz = frame2d.draw_on_image(frame, copy=True)
+                            if out is None:
+                                viz_result_file = "{}_3d_poses.mp4".format(video_file.file)
+                                fourcc = cv2.VideoWriter_fourcc(*'avc1')
+                                out = cv2.VideoWriter(viz_result_file, fourcc, 10,
+                                                      (viz.shape[1], viz.shape[0]))
+                            out.write(viz)
+
+        return True
+
 @attr.s
 class VideoListing:
     camera: ImmutableCamera = attr.ib()
