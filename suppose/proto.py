@@ -1082,6 +1082,8 @@ class App:
                 with tqdm(video_files, disable=disable_tqdm) as tqdm_video_file:
                     date_text = timestamp.strftime(DATETIME_FORMAT)
                     input_filename = processed_video_file_pattern.format(date_text)
+
+                    log.info("Loading ProcessedVideo3D file {}".format(input_filename))
                     pv3d = ProcessedVideo3D.from_proto_file(input_filename)
 
                     #cams = []
@@ -1111,10 +1113,12 @@ class App:
                             viz = frame2d.draw_on_image(frame, copy=True)
                             if out is None:
                                 viz_result_file = "{}_3d_poses.mp4".format(video_file.file)
+                                log.info("Writing viz output video file: {}".format(viz_result_file))
                                 fourcc = cv2.VideoWriter_fourcc(*'avc1')
                                 out = cv2.VideoWriter(viz_result_file, fourcc, 10,
                                                       (viz.shape[1], viz.shape[0]))
                             out.write(viz)
+                            index += 1
 
         return True
 
