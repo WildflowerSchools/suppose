@@ -583,6 +583,9 @@ class ProcessedVideo:
                     out = cv2.VideoWriter(viz_result_file, fourcc, 10,
                                          (viz.shape[1], viz.shape[0]))
                 out.write(viz)
+        cap.release()
+        if out is not None:
+            out.release()
 
         if write_to_cache:
             if os.path.exists(cached_result_file):
@@ -1119,6 +1122,9 @@ class App:
                                                       (viz.shape[1], viz.shape[0]))
                             out.write(viz)
                             index += 1
+                        cap.release()
+                        if out is not None:
+                            out.release()
 
         return True
 
