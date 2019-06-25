@@ -143,7 +143,7 @@ def batch_3d(input_files, cameras, output_file_pattern, draw_viz):
 @click.option("--input-files", required=True, help="Input files glob. Parent path of file must contain camera name.")
 @click.option('--cameras', '-c', multiple=True, required=True, help="camera calibration name->file mapping")
 @click.option('--processed-video-file-pattern', required=False, default="ProcessedVideo3D_{}.pb", help="ProcessedVideo3D protobuf iInput file pattern with {} as placeholder for data")
-def draw_3d(input_files, cameras, processed_video_file_pattern, draw_viz):
+def draw_3d(input_files, cameras, processed_video_file_pattern):
     log.info("3D Reconstruction from multiple input files from multiple cameras")
     log.info("input files: {}".format(input_files))
     log.info("cameras: {}".format(cameras))
