@@ -440,8 +440,12 @@ class Pose2D:
                 body_part_to_index = body_part_connector[1]
                 if valid_keypoints_mask[body_part_from_index] and valid_keypoints_mask[body_part_to_index]:
                     #draw line
-                    pt1 = (int(all_points[body_part_from_index,0]), int(all_points[body_part_from_index, 1]))
-                    pt2 = (int(all_points[body_part_to_index,0]), int(all_points[body_part_to_index, 1]))
+                    try:
+                        pt1 = (int(all_points[body_part_from_index,0]), int(all_points[body_part_from_index, 1]))
+                        pt2 = (int(all_points[body_part_to_index,0]), int(all_points[body_part_to_index, 1]))
+                    except OverflowError:
+                        # point could be inf
+                        continue
                     #print(pt1, pt2)
                     if (0 <= pt1[0] < 99999) and (0 <= pt1[1] < 99999) and ( 0 <= pt2[0] < 99999) and (0 <= pt2[1] < 99999):
                         color = LIMB_COLORS[(body_part_from_index, body_part_to_index)]
