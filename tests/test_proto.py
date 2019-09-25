@@ -368,3 +368,21 @@ def test_processed_video_from_video():
     timestamps = [f.timestamp for f in pv.frames]
     expected_timestamps = [f.timestamp for f in pv_expected.frames]
     assert timestamps == expected_timestamps
+
+def test_ProcessedVideo3D_to_pandas_empty_frames():
+    pv3 = ProcessedVideo3D()
+    pv3.to_pandas()
+
+def test_ProcessedVideo3D_to_pandas_empty_poses():
+    pv3 = ProcessedVideo3D()
+    pv3.frames.append(Frame3D())
+    pv3.to_pandas()
+
+def test_ProcessedVideo_to_pandas_empty_frames():
+    pv = ProcessedVideo()
+    pv.to_pandas()
+
+def test_ProcessedVideo_to_pandas_empty_poses():
+    pv = ProcessedVideo()
+    pv.frames.append(Frame())
+    pv.to_pandas()

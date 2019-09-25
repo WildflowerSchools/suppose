@@ -19,8 +19,9 @@ import datetime
 import re
 from tqdm import tqdm
 from logbook import Logger
+from suppose.tracking import tracker
 
-from suppose.common import rmse, LIMB_COLORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES, TIMESTAMP_REGEX
+from suppose.common import rmse, LIMB_COLORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES, TIMESTAMP_REGEX, KEYPOINT_RMSE_WEIGHTS
 from tf_pose.common import CocoPairsRender
 
 import matplotlib.pyplot as plt
@@ -466,7 +467,11 @@ class Frame:
     poses: typing.List[Pose2D] = attr.ib(default=attr.Factory(list), metadata={"type": Pose2D})
 
     def to_pandas(self):
-        ps = [p.to_pandas() for p in self.poses]
+        if not self.poses:
+            poses = [Pose2D()]
+        else:
+            poses = self.poses
+        ps = [p.to_pandas() for p in poses]
         return pd.concat(ps, keys=range(len(ps)), names=['pose', 'keypoint'])
 
     def to_numpy(self):
@@ -511,7 +516,17 @@ class ProcessedVideo:
     def to_pandas(self):
         frame_dfs = []
         timestamps = []
-        for frame in self.frames:
+
+        # edge case for no frames; just use empty one
+        if not self.frames:
+            frame2d = Frame()
+            frame2d.poses.append(Pose2D())
+            frames = [frame2d]
+        else:
+            frames = self.frames
+
+        for frame in frames:
+
             frame_dfs.append(frame.to_pandas())
             timestamps.append(frame.timestamp)
         df = pd.concat(frame_dfs, keys=timestamps, names=['timestamp'])
@@ -678,6 +693,7 @@ class Pose3D:
             return cls(error=np.nan)
         p1_orig_shared = p1_orig[pts_present]
         p2_orig_shared = p2_orig[pts_present]
+        rmse_weights = KEYPOINT_RMSE_WEIGHTS[pts_present]
 
         p1 = camera_calibration1.undistort_points(p1_orig_shared)
         p2 = camera_calibration2.undistort_points(p2_orig_shared)
@@ -685,8 +701,12 @@ class Pose3D:
 
         p1_reprojected = camera_calibration1.project(pts3d)
         p2_reprojected = camera_calibration2.project(pts3d)
-        p1_rmse = rmse(p1_orig_shared, p1_reprojected)
-        p2_rmse = rmse(p2_orig_shared, p2_reprojected)
+
+        # DEBUG
+        rmse_weights = None
+        
+        p1_rmse = rmse(p1_orig_shared, p1_reprojected, weights=rmse_weights)
+        p2_rmse = rmse(p2_orig_shared, p2_reprojected, weights=rmse_weights)
         if np.isnan(p1_rmse) or np.isnan(p2_rmse):
             # should just continue the loop and ignore this edge
             reprojection_error = np.nan
@@ -729,7 +749,11 @@ class Frame3D:
     poses: typing.List[Pose3D] = attr.ib(default=attr.Factory(list), metadata={"type": Pose3D})
 
     def to_pandas(self):
-        ps = [p.to_pandas() for p in self.poses]
+        if not self.poses:
+            poses = [Pose3D()]
+        else:
+            poses = self.poses
+        ps = [p.to_pandas() for p in poses]
         return pd.concat(ps, keys=range(len(ps)), names=['pose', 'keypoint'])
 
     def to_numpy(self):
@@ -782,12 +806,30 @@ class ProcessedVideo3D:
     cameras: typing.List[ImmutableCamera] = attr.ib(default=attr.Factory(list), metadata={"type": ImmutableCamera})
     frames: typing.List[Frame3D] = attr.ib(default=attr.Factory(list), metadata={"type": Frame3D})
 
+    @property
+    def camera_map(self):
+        cameras = {}
+        for camera in self.cameras:
+            cameras[camera.name] = camera
+
+        return cameras
+
     def to_pandas(self):
         frame_dfs = []
         timestamps = []
-        for frame in self.frames:
+
+        # edge case for no frames; just use empty one
+        if not self.frames:
+            frame3d = Frame3D()
+            frame3d.poses.append(Pose3D())
+            frames = [frame3d]
+        else:
+            frames = self.frames
+
+        for frame in frames:
             frame_dfs.append(frame.to_pandas())
             timestamps.append(frame.timestamp)
+
         df = pd.concat(frame_dfs, keys=timestamps, names=['timestamp'])
         metadata = {}
         for a in attr.fields(self.__class__):
@@ -991,10 +1033,12 @@ class VideoIndex:
 
         files = glob.glob(glob_pattern)
         vfs = []
+        print(timestamp_regex)
         for file in files:
+            print(file)
             m = re.search(timestamp_regex, file)
             if m is None:
-                raise ValueError("Could not decode timestamp from file name")
+                raise ValueError("Could not decode timestamp from file name. file={file} timestamp_regex={timestamp_regex}".format(file=file, timestamp_regex=timestamp_regex))
             d = m.groupdict()
             timestamp_str = "{year}-{month}-{day}-{hour}-{minute}-{second}".format(**d)
             # lazy way to get validation
@@ -1007,13 +1051,27 @@ class VideoIndex:
 
 @attr.s
 class App:
-    def process_2d(self, extractor, glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, draw_viz=True):
-        log = Logger('App')
+    def raw_video_fetcher(self, glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX):
+        """ gets video listing and returns [(timestamp, video_file), ...] """
         vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=timestamp_regex)
-        log.info("Files to process: {}".format(vi.video_files))
-        length = len(vi.video_files)
-        processed_videos = []
         files_by_timestamp = list(vi.groupby_iter('timestamp'))
+        return files_by_timestamp
+
+    def process_2d_from_globs(self, extractor, glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, draw_viz=True):
+        #log = Logger('App')
+        #processed_videos = []
+        files_by_timestamp = self.raw_video_fetcher(glob_pattern=glob_pattern, timestamp_regex=timestamp_regex)
+        return self.process_2d(extractor, files_by_timestamp, display_progress=display_progress, draw_viz=draw_viz)
+
+    def process_2d(self, extractor, files_by_timestamp, display_progress=True, draw_viz=True):
+        log = Logger('App')
+        #vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=timestamp_regex)
+        #log.info("Files to process: {}".format(vi.video_files))
+        #length = len(vi.video_files)
+        processed_videos = []
+        #files_by_timestamp = list(vi.groupby_iter('timestamp'))
+        #files_by_timestamp = self.raw_video_fetcher(glob_pattern=glob_pattern, timestamp_regex=timestamp_regex)
+
         disable_tqdm = not display_progress
         with tqdm(files_by_timestamp, disable=disable_tqdm) as tqdm_files:
             for timestamp, video_files in tqdm_files:
@@ -1024,6 +1082,7 @@ class App:
                     for video_file in tqdm_video_file:
                         display_filename = "{} : {}".format(video_file.camera, video_file.file)
                         tqdm_video_file.set_description(display_filename)
+                        log.info("Processing: {}".format(display_filename))
                         pv = ProcessedVideo.from_video(video_file.file,
                                                        extractor,
                                                        read_from_cache=False,
@@ -1033,9 +1092,12 @@ class App:
                 processed_videos.append((timestamp, pvs))
         return processed_videos
 
-    def process_3d(self, cameras: typing.Mapping[str, ImmutableCamera], glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, output_file_pattern="ProcessedVideo3D_{}.pb"):
+    def process_3d_from_globs(self):
+        pass
+
+    def process_3d(self, cameras: typing.Mapping[str, ImmutableCamera], glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, output_file_pattern="ProcessedVideo3D_{}.pb", write_output=True, read_from_cache=True, write_to_cache=False):
         log = Logger('App')
-        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=TIMESTAMP_REGEX)
+        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=timestamp_regex)
         log.info("Files to process: {}".format(vi.video_files))
         length = len(vi.video_files)
         processed_videos = []
@@ -1054,10 +1116,13 @@ class App:
                     for video_file in tqdm_video_file:
                         display_filename = "{} : {}".format(video_file.camera, video_file.file)
                         tqdm_video_file.set_description(display_filename)
-                        pv = ProcessedVideo.from_video(video_file.file,
+                        if video_file.file.endswith("pb"):
+                            pv = ProcessedVideo.from_proto_file(video_file.file)
+                        else:
+                            pv = ProcessedVideo.from_video(video_file.file,
                                                        None,
-                                                       read_from_cache=True,
-                                                       write_to_cache=False,
+                                                       read_from_cache=read_from_cache,
+                                                       write_to_cache=write_to_cache,
                                                        timestamp_start=timestamp,
                                                        draw_viz=False)
                         pvs.append(pv)
@@ -1066,13 +1131,24 @@ class App:
 
                     date_text = timestamp.strftime(DATETIME_FORMAT)
                     output_filename = output_file_pattern.format(date_text)
-                    pv3d.to_proto_file(output_filename)
+                    if write_output:
+                        pv3d.to_proto_file(output_filename)
                     processed_videos.append((timestamp, pv3d))
         return processed_videos
 
-    def draw_3d(self, cameras: typing.Mapping[str, ImmutableCamera], glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, processed_video_file_pattern="ProcessedVideo3D_{}.pb"):
+    def draw_3d(self,
+                cameras: typing.Mapping[str, ImmutableCamera],
+                #pv3d_iter,
+                #size=None,
+                glob_pattern='*.mp4',
+                timestamp_regex=TIMESTAMP_REGEX,
+                display_progress=True,
+                processed_video_file_pattern="ProcessedVideo3D_{}.pb",
+                fourcc_string="avc1",
+                video_output_container="mp4"):
+
         log = Logger('App')
-        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=TIMESTAMP_REGEX)
+        vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=timestamp_regex)
         log.info("Files to process: {}".format(vi.video_files))
         length = len(vi.video_files)
         processed_videos = []
@@ -1119,9 +1195,9 @@ class App:
                             frame2d = pv3d_frame.project_2d(cameras[video_file.camera])
                             viz = frame2d.draw_on_image(frame, copy=True)
                             if out is None:
-                                viz_result_file = "{}_3d_poses.mp4".format(video_file.file)
+                                viz_result_file = "{}_3d_poses.{}".format(video_file.file, video_output_container)
                                 log.info("Writing viz output video file: {}".format(viz_result_file))
-                                fourcc = cv2.VideoWriter_fourcc(*'avc1')
+                                fourcc = cv2.VideoWriter_fourcc(*fourcc_string)
                                 out = cv2.VideoWriter(viz_result_file, fourcc, 10,
                                                       (viz.shape[1], viz.shape[0]))
                             out.write(viz)
@@ -1131,6 +1207,113 @@ class App:
                             out.release()
 
         return True
+
+    def processed_video_3d_fetcher(self, data_files):
+        for data_file in data_files:
+            pv3d = ProcessedVideo3D.from_proto_file(data_file)
+            yield pv3d
+
+    def track_3d_from_glob(self, data_files_glob):
+        data_files = sorted(glob.glob(data_files_glob))
+        size = len(data_files)
+        pv3d_iter = self.processed_video_3d_fetcher(data_files)
+        return self.track_3d(pv3d_iter, size)
+
+    def track_3d(self, pv3d_iter, size=None):
+        room_size = np.array([12.0*.3048, 16.0*.3048, 3.0])
+
+        pose_initialization_model = tracker.PoseInitializationModel(
+            initial_keypoint_position_means = np.tile(room_size/2, (18, 1)),
+            initial_keypoint_velocity_means = np.zeros((18,3)),
+            initial_keypoint_position_error = np.amax(room_size)/2.0,
+            initial_keypoint_velocity_error = 2.0)
+
+        keypoint_model = tracker.KeypointModel(
+            position_observation_error = 1.0,
+            reference_delta_t = 0.1,
+            reference_position_transition_error = 0.1,
+            reference_velocity_transition_error = 0.1)
+
+        pose_tracking_model = tracker.PoseTrackingModel(
+            cost_threshold = 1.0,
+            num_missed_observations_threshold = 10)
+
+        pose_tracks = None
+
+        #data_files = sorted(glob.glob(data_files_glob))
+
+        for pv3 in tqdm(pv3d_iter, total=size):
+            #pv3 = ProcessedVideo3D.from_proto_file(data_file)
+
+            index = 0
+            for frame in tqdm(pv3.frames):
+                keypoints = frame.to_numpy()
+                #print(frame.timestamp)
+                timestamp = datetime.datetime.utcfromtimestamp(frame.timestamp)
+                dt = np.datetime64(timestamp)
+                poses_3d = tracker.Poses3D.from_keypoints(keypoints, timestamp=dt)
+
+                if pose_tracks is None:
+                    pose_tracks = tracker.Pose3DTracks.initialize(
+                        pose_initialization_model = pose_initialization_model,
+                        keypoint_model = keypoint_model,
+                        pose_tracking_model = pose_tracking_model,
+                        pose_3d_observations = poses_3d)
+                    continue
+
+                pose_tracks.update(poses_3d)
+                tracked_poses = pose_tracks.last_to_poses_3d()
+                #frame = tracked_poses.to_protobuf()
+                #new_frame = pv.frames.add()
+                #new_frame.CopyFrom(frame)
+
+                if index % 33 == 0:
+                    tracked_poses = pose_tracks.last_to_poses_3d()
+                    tqdm.write("# tracked poses: {}".format(tracked_poses.dataframe()))
+
+                index += 1
+
+                inactive = pose_tracks.num_inactive_tracks()
+                active = pose_tracks.num_active_tracks()
+                total = inactive + active
+                tqdm.write("Tracks:\tTotal = {}\tInactive = {}\tActive = {}".format(total, inactive, active))
+
+        #output_dataframe_filename = 'alphapose-poses_tracks.pickle.xz'
+        output_dataframe = pose_tracks.dataframe()
+        output_dataframe.timestamp = output_dataframe.timestamp.apply(lambda x: x.reshape(1)[0])
+
+        #output_dataframe.to_pickle(output_dataframe_filename)
+        #print('Output saved in {}'.format(output_dataframe_filename))
+
+        # output to json for vis (for now until we unmarshal protobuf in JS
+        df = output_dataframe
+        gr = df.groupby("timestamp")
+        keys = sorted(gr.groups.keys())
+        good_tracks = df.groupby("track_id").filter(lambda x: len(x) > 0).track_id.unique()
+        df2 = df[df.track_id.isin(good_tracks)]
+        gr2 = df2.groupby("timestamp")
+
+        poses = []
+        for index, key in enumerate(tqdm(keys)):
+            row = gr2.get_group(key)
+            pose = np.stack(row.keypoints.values)#.tolist()
+            std = np.stack(row.keypoint_std_devs)
+            stds = np.stack([np.linalg.norm(s, axis=1) for s in std])
+            stds2 = stds.reshape(list(stds.shape) + [1])
+            pose_std = np.concatenate([pose, stds2], axis=2)
+            poses.append((index, pose_std.tolist()))
+        ps = { index: {"poses": pose} for (index, pose) in poses }
+        ef = pd.DataFrame.from_dict(ps, orient="index")
+        ef.poses.to_json("pose-tracks.json")
+
+    def run(self, extractor, cameras, glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, draw_viz=True):
+        pv2d = self.process_2d(extractor, glob_pattern=glob_pattern, timestamp_regex=timestamp_regex, display_progress=display_progress, draw_viz=draw_viz)
+
+        pv3d = self.process_3d(cameras, glob_pattern=glob_pattern, timestamp_regex=TIMESTAMP_REGEX, display_progress=True, output_file_pattern="ProcessedVideo3D_{}.pb", write_output=True, read_from_cache=True, write_to_cache=False)
+
+        tracked_poses_3d = self.track_3d(pv3d)
+        self.draw_3d(tracked_poses_3d)
+
 
 @attr.s
 class VideoListing:

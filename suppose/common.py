@@ -85,8 +85,85 @@ def stack_images(images, canvas_width=480*2, force_n=None):
             r += 1
     return canvas
 
-def rmse(p1, p2):
-    return np.linalg.norm(p1 - p2)/np.sqrt(p1.shape[0])
+NUM_BODY_PARTS = 18
+
+KEYPOINT_RMSE_WEIGHTS = np.array([
+    1,      # Nose = 0
+    1,      # Neck = 1
+    1,      # RShoulder = 2
+    0.5,      # RElbow = 3
+    0.5,      # RWrist = 4
+    1,      # LShoulder = 5
+    0.5,      # LElbow = 6
+    0.5,      # LWrist = 7
+    0.5,      # RHip = 8
+    0.1,      # RKnee = 9
+    0.1,      # RAnkle = 10
+    0.5,      # LHip = 11
+    0.1,      # LKnee = 12
+    0.1,      # LAnkle = 13
+    1,      # REye = 14
+    1,      # LEye = 15
+    1,      # REar = 16
+    1,      # LEar = 17
+], dtype=np.float64)
+
+xKEYPOINT_RMSE_WEIGHTS = np.array([
+    1,      # Nose = 0
+    1,      # Neck = 1
+    1,      # RShoulder = 2
+    0.0,      # RElbow = 3
+    0.0,      # RWrist = 4
+    1,      # LShoulder = 5
+    0.0,      # LElbow = 6
+    0.0,      # LWrist = 7
+    0.0,      # RHip = 8
+    0.0,      # RKnee = 9
+    0.0,      # RAnkle = 10
+    0.0,      # LHip = 11
+    0.0,      # LKnee = 12
+    0.0,      # LAnkle = 13
+    1,      # REye = 14
+    1,      # LEye = 15
+    1,      # REar = 16
+    1,      # LEar = 17
+], dtype=np.float64)
+
+xKEYPOINT_RMSE_WEIGHTS = np.array([
+    0,      # Nose = 0
+    1,      # Neck = 1
+    1,      # RShoulder = 2
+    0.0,      # RElbow = 3
+    0.0,      # RWrist = 4
+    1,      # LShoulder = 5
+    0.0,      # LElbow = 6
+    0.0,      # LWrist = 7
+    0.0,      # RHip = 8
+    0.0,      # RKnee = 9
+    0.0,      # RAnkle = 10
+    0.0,      # LHip = 11
+    0.0,      # LKnee = 12
+    0.0,      # LAnkle = 13
+    0,      # REye = 14
+    0,      # LEye = 15
+    0,      # REar = 16
+    0,      # LEar = 17
+], dtype=np.float64)
+
+# DEBUG
+#KEYPOINT_RMSE_WEIGHTS = np.ones_like(KEYPOINT_RMSE_WEIGHTS).astype(np.float64)
+
+#KEYPOINT_RMSE_WEIGHTS = KEYPOINT_RMSE_WEIGHTS / np.sum(KEYPOINT_RMSE_WEIGHTS)
+
+
+def rmse(p1, p2, weights=None):
+    diff = p1 - p2
+    #print(repr(diff))
+    #print()
+    #print(repr(weights))
+    if weights is not None:
+        diff = diff * weights[:, None]
+    return np.linalg.norm(diff)/np.sqrt(p1.shape[0])
 
 
 LIMB_COLORS = dict(zip(CocoPairsRender, CocoColors))

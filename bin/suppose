@@ -117,7 +117,7 @@ def batch_extract(input_files, draw_viz, resolution, model, timestamp_regex, dis
 
     extractor = PoseExtractor()
     app = proto.App()
-    app.process_2d(extractor, glob_pattern=input_files, timestamp_regex=timestamp_regex, display_progress=display_progress, draw_viz=draw_viz)
+    app.process_2d_from_globs(extractor, glob_pattern=input_files, timestamp_regex=timestamp_regex, display_progress=display_progress, draw_viz=draw_viz)
 
 @cli.command()
 @click.option("--input-files", required=True, help="Input files glob. Parent path of file must contain camera name.")
@@ -141,20 +141,31 @@ def batch_3d(input_files, cameras, output_file_pattern, draw_viz):
 
 @cli.command()
 @click.option("--input-files", required=True, help="Input files glob. Parent path of file must contain camera name.")
-@click.option('--cameras', '-c', multiple=True, required=True, help="camera calibration name->file mapping")
-@click.option('--processed-video-file-pattern', required=False, default="ProcessedVideo3D_{}.pb", help="ProcessedVideo3D protobuf iInput file pattern with {} as placeholder for data")
-def draw_3d(input_files, cameras, processed_video_file_pattern):
+#@click.option('--cameras', '-c', multiple=True, required=True, help="camera calibration name->file mapping")
+@click.option('--processed-video-file-pattern', required=False, default="ProcessedVideo3D_{}.pb", help="ProcessedVideo3D protobuf input file pattern with {} as placeholder for data")
+def draw_3d(input_files, #cameras,
+            processed_video_file_pattern):
     log.info("3D Reconstruction from multiple input files from multiple cameras")
     log.info("input files: {}".format(input_files))
-    log.info("cameras: {}".format(cameras))
-    camera_map = {}
-    for c in cameras:
-        name, camera_file = c.split(',')
-        camera = proto.ImmutableCamera.from_legacy_json_file(camera_file, name=name)
-        camera_map[name] = camera
+    #log.info("cameras: {}".format(cameras))
+    #camera_map = {}
+    #for c in cameras:
+    #    name, camera_file = c.split(',')
+    #    camera = proto.ImmutableCamera.from_legacy_json_file(camera_file, name=name)
+    #    camera_map[name] = camera
 
     app = proto.App()
-    app.draw_3d(camera_map, glob_pattern=input_files)
+    app.draw_3d(glob_pattern=input_files)
+
+
+@cli.command()
+@click.option("--input-files", required=True, help="Input ProcessedVideo3D file glob.")
+def track_3d(input_files):
+    log.info("3D Tracking")
+    log.info("input file: {}".format(input_files))
+
+    app = proto.App()
+    app.track_3d_from_glob(input_files)
 
 
 if __name__ == '__main__':
