@@ -160,7 +160,7 @@
     var first_start = false;
     var end_movie = false;
 
-    let NUM_PEOPLE_MESHES = 10;
+    let NUM_PEOPLE_MESHES = 30;
     var people_meshes_available;
     var people_meshes_used;
     var bodypart_meshes_available;
@@ -171,7 +171,13 @@
 
     var drawPerson = function(scene, keypoints, parent, keypoint_mat, bodypart_mat) {
         let pidx = 0;
+        let person_index = 0;
         for (let person of keypoints) {
+            if (pidx >= 30) {
+                break;
+            }
+            //console.log("person")
+            //console.log(person)
             let kpidx = 0;
             for (let kp of person) {
                 if (kp[1] === null) {
@@ -179,6 +185,9 @@
                 }
                 if(kp[3] > KALMAN_STD_THRESHOLD) {
                     // below std kalman filter
+                    continue;
+                }
+                if (kp[1] > 9999) {
                     continue;
                 }
                 //let box = BABYLON.Mesh.CreateBox(`kp-${pidx}-${kpidx}`, 0.04, scene);
@@ -263,6 +272,7 @@
             yield* iterable;
         }
     }
+    //var index = 0;
 
     var renderFrame = function(context) {
         let {scene, keypoints_iterable, keypoints, keypoints_length, total_time, parent, keypoint_mat, bodypart_mats, time, last_index} = context;
@@ -338,7 +348,7 @@
             }
         }
         context['last_index'] = frame_index;
-
+        //console.log(frame_index);
 
         for(var mesh of people_meshes_used) {
             mesh.setEnabled(false);
@@ -352,8 +362,14 @@
 
         bodypart_meshes_available.push(...bodypart_meshes_used);
         bodypart_meshes_used = [];
-        drawPerson(scene, keypoints, parent, keypoint_mat, bodypart_mats);
-        //context['last_frame'] = frame_index;
+        try {
+            //console.log("Trying to draw person");
+            drawPerson(scene, keypoints, parent, keypoint_mat, bodypart_mats);
+            //console.log("Drew person!");
+            //context['last_frame'] = frame_index;
+        } catch(e) {
+            console.log(e);
+        }
 
         if (CCAPTURE_ENABLED) {
             if (!end_movie) {
@@ -564,14 +580,16 @@
     //let loadDataTask = assetsManager.addTextFileTask("data task", "december-demo-2018-11-30-22-35-40-poses-cmu.pickle.xz__filtered.json");
 
     //let loadDataTask = assetsManager.addTextFileTask("data task", "capucine-alphapose-ProcessedVideo3D_2019-06-06-15-40-40.json");
-    let loadDataTask = assetsManager.addTextFileTask("data task", "alphapose.pickle.xz__filtered.json");
+    //let loadDataTask = assetsManager.addTextFileTask("data task", "alphapose.pickle.xz__filtered.json");
     //let loadDataTask = assetsManager.addTextFileTask("data task", "pose-tracks.json");
+    let loadDataTask = assetsManager.addTextFileTask("data task", "capucine-3d-pose-tracks-1559851200-1559854800.json");
 
 
     loadDataTask.onSuccess = function(task) {
         console.log("loaded data!");
         console.log(task.text[0]);
         let data = JSON.parse(task.text);
+        console.log("Done parsing data!")
         context["keypoints_iterable"] = cycle(Object.entries(data));
         context["keypoints"] = data;
         context['keypoints_length'] = Object.keys(data).length;
@@ -632,7 +650,7 @@
 
     function handleDataAvailable(event) {
         if (event.data && event.data.size > 0) {
-            recordedBlobs.push(event.data);
+            //recordedBlobs.push(event.data);
         }
     }
 
@@ -640,7 +658,11 @@
         engine.runRenderLoop(function() {
             scene.render();
             if (context.state.isPlaying) {
-                renderFrame(context);
+                try {
+                    renderFrame(context);
+                } catch (e) {
+                    console.log(e);
+                }
             }
         });
     };

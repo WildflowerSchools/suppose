@@ -21,7 +21,7 @@ from tqdm import tqdm
 from logbook import Logger
 from suppose.tracking import tracker
 
-from suppose.common import rmse, LIMB_COLORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES, TIMESTAMP_REGEX, KEYPOINT_RMSE_WEIGHTS
+from suppose.common import rmse, LIMB_COLORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES, TIMESTAMP_REGEX, KEYPOINT_RMSE_WEIGHTS, LOWER_BODY_INDICES, UPPER_BODY_INDICES
 from tf_pose.common import CocoPairsRender
 
 import matplotlib.pyplot as plt
@@ -378,7 +378,7 @@ class Pose2D:
     def valid_keypoints_mask(self):
         return np.array([kp.is_valid for kp in self.keypoints])
 
-    def draw(self, ax=None) -> Axes:
+    def draw(self, ax=None, index=None) -> Axes:
         if ax is None:
             fig, ax = plt.subplots()
         all_points = self.to_numpy()[:, :2]
@@ -394,15 +394,31 @@ class Pose2D:
                 pt1 = [all_points[body_part_from_index, 0], all_points[body_part_to_index, 0]]
                 pt2 = [all_points[body_part_from_index, 1], all_points[body_part_to_index, 1]]
                 color = LIMB_COLORS[(body_part_from_index, body_part_to_index)]
+                if np.max(pt1) > 9999 or np.min(pt1) < -9999 or np.max(pt2) > 9999 or np.min(pt2) < -9999:
+                    continue
                 ax.plot(pt1, pt2, 'k-', linewidth=3, markersize=10, color=[c/255 for c in color], alpha=0.8)
+
+        if index is not None:
+            x, y = self.centroid
+            if 0 < x < 9999 and 0 < y < 9999:
+                ax.text(x, y, "{}".format(index), fontsize=16)
         return ax
 
     # Plot a pose onto a chart with the coordinate system of the origin image.
     # Calls the drawing function above, adds formating, and shows the plot
-    def plot(self, ax=None, image_size=(1296, 972)) -> Axes:
-        ax = self.draw(ax)
+    def plot(self, ax=None, image_size=(1296, 972), index=None) -> Axes:
+        ax = self.draw(ax, index=index)
         self.format_plot(ax, image_size=image_size)
         return ax
+
+    @property
+    def centroid(self):
+        a = self.valid_keypoints
+        means = np.mean(a, axis=0)
+        x = means[0]
+        y = means[1]
+        return (x, y)
+
 
     @staticmethod
     def format_plot(ax: Axes, image_size):
@@ -481,8 +497,8 @@ class Frame:
     def plot(self, ax=None, image_size=(1296, 972)) -> Axes:
         if ax is None:
             fig, ax = plt.subplots()
-        for pose in self.poses:
-            pose.draw(ax=ax)
+        for index, pose in enumerate(self.poses):
+            pose.draw(ax=ax, index=index)
         Pose2D.format_plot(ax, image_size)
         return ax
 
@@ -741,6 +757,15 @@ class Pose3D:
             return np.mean(keypoints[valid_head_and_torso_keypoints], axis=0)
         return np.mean(keypoints[self.valid_keypoints_mask], axis=0)
 
+    @property
+    def centroid(self):
+        a = self.valid_keypoints
+        means = np.mean(a, axis=0)
+        x = means[0]
+        y = means[1]
+        z = means[2]
+        return (x, y, z)
+
 
 @protonic(suppose_pb2.Frame3D)
 @attr.s
@@ -965,6 +990,35 @@ class Pose3DGraph:
                 pose3d = Pose3D.from_2d(pose_a, pose_b, camera_a, camera_b)
                 if np.isnan(pose3d.error) or pose3d.error > max_error:
                     continue
+                # pose should be near ground
+                #print(repr(pose3d.to_numpy()))
+                #print(repr(LOWER_BODY_INDICES))
+                lb = pose3d.to_numpy()[LOWER_BODY_INDICES]
+
+                bar = lb[~np.isnan(lb[:, 0])]
+                if bar.size == 0:
+                    # need at least one lower body part
+                    print("no lower body part!")
+                    continue
+                    ub = pose3d.to_numpy()[UPPER_BODY_INDICES]
+                    bar2 = ub[~np.isnan(ub[:, 0])]
+                    baz2 = np.mean(bar2, axis=0)
+                    z_upper = baz2[2]
+                    if z_upper > 2:
+                        print("upper body too high!")
+                        continue
+
+                else:
+
+                    baz = np.mean(bar, axis=0)
+                    z_lower = baz[2]
+
+
+                    if z_lower > 1:
+                        print("lower body too high!")
+                        continue
+
+
                 camera_a_index = camera_index[id(camera_a)]
                 camera_b_index = camera_index[id(camera_b)]
                 pose_a_index = pose_a_indices[id(pose_a)]
@@ -997,15 +1051,34 @@ class Pose3DGraph:
 
     @staticmethod
     def get_best_matches(graph, min_edges=1):
+        graph = graph.copy()
         graph_best = nx.Graph()
         best_edges = []
         #for subgraph in nx.connected_component_subgraphs(graph):
-        for subgraph in (graph.subgraph(c).copy() for c in nx.connected_components(graph)):
-            if subgraph.number_of_edges() >= min_edges:
-                best_edge = sorted(subgraph.edges(data=True), key=lambda node: node[2]['pose'].error)[0]
-                best_edges.append(best_edge)
+        while True:
+            changed = False
+            for subgraph in (graph.subgraph(c).copy() for c in nx.connected_components(graph)):
+                if subgraph.number_of_edges() >= min_edges:
+                    best_edge = sorted(subgraph.edges(data=True), key=lambda node: node[2]['pose'].error)[0]
+                    best_edges.append(best_edge)
+                    # remove nodes from graph and re-do connected component search
+                    #for node in best_edge[:2]:
+                    #    graph.remove_node(node)
+                    graph.remove_nodes_from(best_edge[:2])
+                    changed = True
+                    break
+            if changed:
+                continue
+            break
         graph_best.add_edges_from(best_edges)
         return graph_best
+
+    @staticmethod
+    def nms(graph, distance_threshold=0.3048):
+        """ Non-maxima suppression of 3D poses """
+        for edge in graph.graph.edges(data=True):
+            pass
+
 
 
 @attr.s
@@ -1219,7 +1292,7 @@ class App:
         pv3d_iter = self.processed_video_3d_fetcher(data_files)
         return self.track_3d(pv3d_iter, size)
 
-    def track_3d(self, pv3d_iter, size=None):
+    def track_3d(self, pv3d_iter, size=None, progress_bar=tqdm):
         room_size = np.array([12.0*.3048, 16.0*.3048, 3.0])
 
         pose_initialization_model = tracker.PoseInitializationModel(
@@ -1242,11 +1315,11 @@ class App:
 
         #data_files = sorted(glob.glob(data_files_glob))
 
-        for pv3 in tqdm(pv3d_iter, total=size):
+        for pv3 in progress_bar(pv3d_iter, total=size):
             #pv3 = ProcessedVideo3D.from_proto_file(data_file)
 
             index = 0
-            for frame in tqdm(pv3.frames):
+            for frame in progress_bar(pv3.frames):
                 keypoints = frame.to_numpy()
                 #print(frame.timestamp)
                 timestamp = datetime.datetime.utcfromtimestamp(frame.timestamp)
@@ -1261,29 +1334,30 @@ class App:
                         pose_3d_observations = poses_3d)
                     continue
 
+
                 pose_tracks.update(poses_3d)
                 tracked_poses = pose_tracks.last_to_poses_3d()
                 #frame = tracked_poses.to_protobuf()
                 #new_frame = pv.frames.add()
                 #new_frame.CopyFrom(frame)
 
-                if index % 33 == 0:
-                    tracked_poses = pose_tracks.last_to_poses_3d()
-                    tqdm.write("# tracked poses: {}".format(tracked_poses.dataframe()))
+                #if index % 33 == 0:
+                #    tracked_poses = pose_tracks.last_to_poses_3d()
+                #    tqdm.write("# tracked poses: {}".format(tracked_poses.dataframe()))
 
                 index += 1
 
                 inactive = pose_tracks.num_inactive_tracks()
                 active = pose_tracks.num_active_tracks()
                 total = inactive + active
-                tqdm.write("Tracks:\tTotal = {}\tInactive = {}\tActive = {}".format(total, inactive, active))
+                #tqdm.write("Tracks:\tTotal = {}\tInactive = {}\tActive = {}".format(total, inactive, active))
 
-        #output_dataframe_filename = 'alphapose-poses_tracks.pickle.xz'
+        output_dataframe_filename = 'poses_tracks.pickle.xz'
         output_dataframe = pose_tracks.dataframe()
         output_dataframe.timestamp = output_dataframe.timestamp.apply(lambda x: x.reshape(1)[0])
 
-        #output_dataframe.to_pickle(output_dataframe_filename)
-        #print('Output saved in {}'.format(output_dataframe_filename))
+        output_dataframe.to_pickle(output_dataframe_filename)
+        print('Output saved in {}'.format(output_dataframe_filename))
 
         # output to json for vis (for now until we unmarshal protobuf in JS
         df = output_dataframe
@@ -1305,6 +1379,7 @@ class App:
         ps = { index: {"poses": pose} for (index, pose) in poses }
         ef = pd.DataFrame.from_dict(ps, orient="index")
         ef.poses.to_json("pose-tracks.json")
+        return output_dataframe
 
     def run(self, extractor, cameras, glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, draw_viz=True):
         pv2d = self.process_2d(extractor, glob_pattern=glob_pattern, timestamp_regex=timestamp_regex, display_progress=display_progress, draw_viz=draw_viz)

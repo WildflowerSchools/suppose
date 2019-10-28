@@ -169,19 +169,41 @@ def rmse(p1, p2, weights=None):
 LIMB_COLORS = dict(zip(CocoPairsRender, CocoColors))
 
 NECK_INDEX = CocoPart.Neck.value
-SHOULDER_INDICES = (CocoPart.RShoulder.value, CocoPart.LShoulder.value)
+SHOULDER_INDICES = [CocoPart.RShoulder.value, CocoPart.LShoulder.value]
 # (0, 1, 2, 5, 8, 11, 14 , 15, 16, 17)
-HEAD_AND_TORSO_INDICES = (
+HEAD_AND_TORSO_INDICES = [
     CocoPart.Nose.value,
     CocoPart.Neck.value,
     CocoPart.RShoulder.value,
     CocoPart.LShoulder.value,
     CocoPart.RHip.value,
     CocoPart.LHip.value,
-    CocoPart.REye,
-    CocoPart.LEye,
-    CocoPart.REar,
-    CocoPart.LEar
-)
+    CocoPart.REye.value,
+    CocoPart.LEye.value,
+    CocoPart.REar.value,
+    CocoPart.LEar.value,
+]
 
+LOWER_BODY_INDICES = [
+    CocoPart.RHip.value,
+    CocoPart.RKnee.value,
+    CocoPart.RAnkle.value,
+    CocoPart.LHip.value,
+    CocoPart.LKnee.value,
+    CocoPart.LAnkle.value,
+]
 
+UPPER_BODY_INDICES = [
+    CocoPart.Nose.value,
+    CocoPart.Neck.value,
+    CocoPart.RShoulder.value,
+    CocoPart.RElbow.value,
+    CocoPart.RWrist.value,
+    CocoPart.LShoulder.value,
+    CocoPart.LElbow.value,
+    CocoPart.LWrist.value,
+    CocoPart.REye.value,
+    CocoPart.LEye.value,
+    CocoPart.REar.value,
+    CocoPart.LEar.value,
+]
