@@ -4,8 +4,9 @@ from tf_pose.networks import get_graph_path
 from suppose.proto import *
 import datetime as datetime
 
+
 class PoseExtractor:
-    def __init__(self, model='cmu', width=432, height=368):
+    def __init__(self, model="cmu", width=432, height=368):
         self.e = TfPoseEstimator(get_graph_path(model), target_size=(width, height))
 
     def extract(self, image, timestamp=0):

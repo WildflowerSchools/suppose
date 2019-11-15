@@ -15,7 +15,7 @@ from suppose import suppose_pb2
 from suppose import proto
 
 
-log = Logger('pose2d')
+log = Logger("pose2d")
 
 
 MAX_NUM_BODY_PARTS = 18
@@ -41,7 +41,9 @@ def pose_to_array(pose, frame_width, frame_height):
 
 @timing
 def tfpose_to_pandas(poses, frame_width, frame_height):
-    all_poses = { idx: {"poses": pose_to_array(pose, frame_width, frame_height)} for idx, pose in enumerate(poses)}
+    all_poses = {
+        idx: {"poses": pose_to_array(pose, frame_width, frame_height)} for idx, pose in enumerate(poses)
+    }
     df = pd.DataFrame.from_dict(all_poses, orient="index")
     return df
 
@@ -90,7 +92,7 @@ def extract_poses(input_file, e, model_name, datetime_start):
     time0 = time.time()
     while cap.isOpened():
         # debug
-        #if count >= 10:
+        # if count >= 10:
         #    break
         offset = cap.get(cv2.CAP_PROP_POS_MSEC)
         ret_val, image = cap.read()
@@ -112,14 +114,14 @@ def extract_poses(input_file, e, model_name, datetime_start):
     log.info("{} s".format(time1 - time0))
     cap.release()
     pbar.close()
-    #log.info("Converting to protobuf")
+    # log.info("Converting to protobuf")
     return processed_video
 
 
-
-
 @timing
-def extract(videos, model, resolution, write_output, display_progress, file_datetime_format, overwrite_output):
+def extract(
+    videos, model, resolution, write_output, display_progress, file_datetime_format, overwrite_output
+):
     log.info("Starting Pose Extractor")
     log.info("videos: {}".format(videos))
     log.info("model: {}".format(model))
@@ -138,7 +140,7 @@ def extract(videos, model, resolution, write_output, display_progress, file_date
     with tqdm(files, disable=disable_tqdm) as tqdm_files:
         for idx, f in enumerate(tqdm_files):
             display_filename = os.path.join(*f.rsplit("/", maxsplit=4)[-2:])
-            log.info("File {} / {} - {}".format(idx+1, length, f))
+            log.info("File {} / {} - {}".format(idx + 1, length, f))
             tqdm_files.set_description(display_filename)
             if write_output:
                 output_filename = "{}__proto-ProcessedVideo-{}.pb".format(f, model)
@@ -175,12 +177,12 @@ def combine(files_glob, output_filename):
         df = pd.read_pickle(f)
         dfs.append(df)
     ef = pd.concat(dfs, copy=False)
-    ef = ef[~ef.index.duplicated(keep='last')]
+    ef = ef[~ef.index.duplicated(keep="last")]
     ef.sort_index(inplace=True)
-    for column in ('file', 'model'):
-        ef[column] = ef[column].astype('category')
-    output_pickle_filename = '{}.pickle.xz'.format(output_filename)
-    output_json_filename = '{}.json.xz'.format(output_filename)
+    for column in ("file", "model"):
+        ef[column] = ef[column].astype("category")
+    output_pickle_filename = "{}.pickle.xz".format(output_filename)
+    output_json_filename = "{}.json.xz".format(output_filename)
     log.info("Writing to: {}".format(output_pickle_filename))
     ef.to_pickle(output_pickle_filename, compression="xz")
     log.info("Writing to: {}".format(output_json_filename))
@@ -192,13 +194,13 @@ def bundle_multiview(camera_poses, output):
     log.info("Bundling multiple camera views together into single file")
     data = {}
     for cp in camera_poses:
-        name = cp['name']
-        file = cp['file']
+        name = cp["name"]
+        file = cp["file"]
         log.info("{} - {}".format(name, file))
         data[name] = pd.read_pickle(file)
     df = pd.concat(data.values(), axis=1, keys=data.keys())
-    output_pickle_filename = '{}.pickle.xz'.format(output)
-    output_json_filename = '{}.json.xz'.format(output)
+    output_pickle_filename = "{}.pickle.xz".format(output)
+    output_json_filename = "{}.json.xz".format(output)
     log.info("Writing to: {}".format(output_pickle_filename))
     df.to_pickle(output_pickle_filename, compression="xz")
     log.info("Writing to: {}".format(output_json_filename))

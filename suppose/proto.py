@@ -20,7 +20,14 @@ import re
 from tqdm import tqdm
 from logbook import Logger
 
-from suppose.common import rmse, LIMB_COLORS, NECK_INDEX, SHOULDER_INDICES, HEAD_AND_TORSO_INDICES, TIMESTAMP_REGEX
+from suppose.common import (
+    rmse,
+    LIMB_COLORS,
+    NECK_INDEX,
+    SHOULDER_INDICES,
+    HEAD_AND_TORSO_INDICES,
+    TIMESTAMP_REGEX,
+)
 from tf_pose.common import CocoPairsRender
 
 import matplotlib.pyplot as plt
@@ -31,7 +38,8 @@ from networkx import json_graph
 import typing
 from typing import TypeVar, Type
 
-T = TypeVar('T', bound='Parent')
+T = TypeVar("T", bound="Parent")
+
 
 def load_protobuf(file, pb_cls):
     """
@@ -41,10 +49,10 @@ def load_protobuf(file, pb_cls):
     :return: instance of pb_cls
     """
     obj = pb_cls()
-    if hasattr(file, 'read'):
+    if hasattr(file, "read"):
         contents = file.read()
     else:
-        with open(file, 'rb') as f:
+        with open(file, "rb") as f:
             contents = f.read()
     obj.ParseFromString(contents)
     return obj
@@ -52,18 +60,18 @@ def load_protobuf(file, pb_cls):
 
 def write_protobuf(file, pb):
     contents = pb.SerializeToString()
-    if hasattr(file, 'write'):
+    if hasattr(file, "write"):
         file.write(contents)
     else:
-        with open(file, 'wb') as f:
+        with open(file, "wb") as f:
             f.write(contents)
 
 
 def pose2d_to_array(pb):
-        a = []
-        for kp in pb.keypoints:
-            a.append([kp.point.x, kp.point.y, kp.score])
-        return np.array(a, dtype=np.float32)
+    a = []
+    for kp in pb.keypoints:
+        a.append([kp.point.x, kp.point.y, kp.score])
+    return np.array(a, dtype=np.float32)
 
 
 def array_to_pose2d(a):
@@ -78,8 +86,8 @@ def array_to_pose2d(a):
 
 def protonic(protobuf_cls):
     """ Class decorator to support marshing/unmarshaling of attr classes to protobuf equivalents """
-    def protonic_mix(cls):
 
+    def protonic_mix(cls):
         def from_proto(pb):
             d = json_format.MessageToDict(pb, including_default_value_fields=True)
             return cls.from_dict(d)
@@ -91,7 +99,7 @@ def protonic(protobuf_cls):
                 value = getattr(pb, a.name)  # allow AttributeError for now
                 # TODO: support for mapping type
                 if isinstance(a.default, attr.Factory):
-                    atype = a.metadata['type']
+                    atype = a.metadata["type"]
                     if a.default.factory == list:
                         things = []
                         for thing in value:
@@ -183,7 +191,7 @@ class ImmutableMatrix:
         return self._array
 
     @classmethod
-    def from_legacy_dict(cls, m) -> 'ImmutableMatrix':
+    def from_legacy_dict(cls, m) -> "ImmutableMatrix":
         rows = len(m)
         columns = None
         data = []
@@ -215,14 +223,16 @@ class Camera:
     translation: Matrix = attr.ib(default=attr.Factory(Matrix), metadata={"type": Matrix})
 
 
-
-
 @protonic(suppose_pb2.Camera)
 @attr.s(frozen=True)
 class ImmutableCamera:
     name: str = attr.ib(default="")
-    matrix: ImmutableMatrix = attr.ib(default=attr.Factory(ImmutableMatrix), metadata={"type": ImmutableMatrix})
-    distortion: ImmutableMatrix = attr.ib(default=attr.Factory(ImmutableMatrix), metadata={"type": ImmutableMatrix})
+    matrix: ImmutableMatrix = attr.ib(
+        default=attr.Factory(ImmutableMatrix), metadata={"type": ImmutableMatrix}
+    )
+    distortion: ImmutableMatrix = attr.ib(
+        default=attr.Factory(ImmutableMatrix), metadata={"type": ImmutableMatrix}
+    )
     rotation: ImmutableMatrix = attr.ib(default=None, metadata={"type": ImmutableMatrix})
     translation: ImmutableMatrix = attr.ib(default=None, metadata={"type": ImmutableMatrix})
 
@@ -248,25 +258,27 @@ class ImmutableCamera:
 
     @classmethod
     def from_legacy_json_file(cls, file, name=""):
-        with open(file, 'rb') as f:
+        with open(file, "rb") as f:
             d = json.load(f)
         return cls.from_legacy_dict(d, name=name)
 
     @classmethod
-    def from_legacy_dict(cls, d, name="") -> 'ImmutableCamera':
-        matrix = ImmutableMatrix.from_legacy_dict(d['cameraMatrix'])
+    def from_legacy_dict(cls, d, name="") -> "ImmutableCamera":
+        matrix = ImmutableMatrix.from_legacy_dict(d["cameraMatrix"])
         if matrix.rows != 3 or matrix.columns != 3:
             raise ValueError("Camera matrix not 3x3")
-        distortion = ImmutableMatrix.from_legacy_dict(d['distortionCoefficients'])
+        distortion = ImmutableMatrix.from_legacy_dict(d["distortionCoefficients"])
         if distortion.rows != 1 or distortion.columns != 5:
             raise ValueError("Distortion coefficients not 1x5")
-        rotation = ImmutableMatrix.from_legacy_dict(d['rotationVector'])
+        rotation = ImmutableMatrix.from_legacy_dict(d["rotationVector"])
         if rotation.rows != 3 or rotation.columns != 1:
             raise ValueError("Rotation vector not 3x1")
-        translation = ImmutableMatrix.from_legacy_dict(d['translationVector'])
+        translation = ImmutableMatrix.from_legacy_dict(d["translationVector"])
         if translation.rows != 3 or translation.columns != 1:
             raise ValueError("Translation vector not 3x1")
-        return cls(name=name, matrix=matrix, distortion=distortion, rotation=rotation, translation=translation)
+        return cls(
+            name=name, matrix=matrix, distortion=distortion, rotation=rotation, translation=translation
+        )
 
     @classmethod
     def from_charuco_diamond(cls, image, camera_matix, distortion_coefficients, aruco_dict, target_ids):
@@ -285,7 +297,9 @@ class ImmutableCamera:
         distortion_coefficients = self.distortion.to_numpy()
         original_shape = pts.shape
         pts2 = np.ascontiguousarray(pts).reshape(-1, 1, 2)
-        undistorted_points = cv2.undistortPoints(pts2, camera_matrix, distortion_coefficients, P=camera_matrix)
+        undistorted_points = cv2.undistortPoints(
+            pts2, camera_matrix, distortion_coefficients, P=camera_matrix
+        )
         undistorted_points = undistorted_points.reshape(original_shape)
         return undistorted_points
 
@@ -301,7 +315,14 @@ class ImmutableCamera:
     def project(self, pts3d):
         if pts3d.size == 0:
             return np.zeros((0, 2))
-        return cv2.projectPoints(pts3d, self.rotation.to_numpy(), self.translation.to_numpy(), self.matrix.to_numpy(), self.distortion.to_numpy())[0].squeeze()
+        return cv2.projectPoints(
+            pts3d,
+            self.rotation.to_numpy(),
+            self.translation.to_numpy(),
+            self.matrix.to_numpy(),
+            self.distortion.to_numpy(),
+        )[0].squeeze()
+
 
 @protonic(suppose_pb2.Vector2f)
 @attr.s
@@ -325,13 +346,13 @@ class Keypoint2D:
     def to_pandas(self):
         d = {}
         ps = self.point.to_pandas()
-        d['point'] = ps
-        d['score'] = pd.Series(self.score, index=['value'])
+        d["point"] = ps
+        d["score"] = pd.Series(self.score, index=["value"])
         return pd.concat(d)
 
     def to_numpy(self):
         point = self.point.to_numpy()
-        a = np.append(point, self.score).astype(np.float32)     # flatten
+        a = np.append(point, self.score).astype(np.float32)  # flatten
         return a
 
     @property
@@ -381,8 +402,8 @@ class Pose2D:
         if ax is None:
             fig, ax = plt.subplots()
         all_points = self.to_numpy()[:, :2]
-        #camera_utilities.draw_2d_image_points(self.valid_keypoints)
-        ax.plot(self.valid_keypoints[:, 0], self.valid_keypoints[:,1], '.', color='green', markersize=10)
+        # camera_utilities.draw_2d_image_points(self.valid_keypoints)
+        ax.plot(self.valid_keypoints[:, 0], self.valid_keypoints[:, 1], ".", color="green", markersize=10)
 
         valid_keypoints_mask = self.valid_keypoints_mask
 
@@ -393,7 +414,7 @@ class Pose2D:
                 pt1 = [all_points[body_part_from_index, 0], all_points[body_part_to_index, 0]]
                 pt2 = [all_points[body_part_from_index, 1], all_points[body_part_to_index, 1]]
                 color = LIMB_COLORS[(body_part_from_index, body_part_to_index)]
-                ax.plot(pt1, pt2, 'k-', linewidth=3, markersize=10, color=[c/255 for c in color], alpha=0.8)
+                ax.plot(pt1, pt2, "k-", linewidth=3, markersize=10, color=[c / 255 for c in color], alpha=0.8)
         return ax
 
     # Plot a pose onto a chart with the coordinate system of the origin image.
@@ -407,22 +428,22 @@ class Pose2D:
     def format_plot(ax: Axes, image_size):
         ax.set_xlim(0, image_size[0])
         ax.set_ylim(0, image_size[1])
-        ax.set_xlabel(r'$u$')
-        ax.set_ylabel('$v$')
+        ax.set_xlabel(r"$u$")
+        ax.set_ylabel("$v$")
         ax.invert_yaxis()
-        ax.xaxis.set_ticks_position('top')
-        ax.xaxis.set_label_position('top')
-        ax.set_aspect('equal')
+        ax.xaxis.set_ticks_position("top")
+        ax.xaxis.set_label_position("top")
+        ax.set_aspect("equal")
 
     def draw_on_image(self, canvas, draw_limbs=True, copy=False, lineType=cv2.LINE_AA):
         if copy:
             canvas = np.copy(canvas)
 
-        #color = (255, 100, 255)
+        # color = (255, 100, 255)
         all_points = self.points_array
         valid_keypoints_mask = self.valid_keypoints_mask
         plottable_points = self.valid_keypoints
-        #import ipdb;ipdb.set_trace()
+        # import ipdb;ipdb.set_trace()
 
         joint_color = (0, 255, 0)
 
@@ -439,15 +460,23 @@ class Pose2D:
                 body_part_from_index = body_part_connector[0]
                 body_part_to_index = body_part_connector[1]
                 if valid_keypoints_mask[body_part_from_index] and valid_keypoints_mask[body_part_to_index]:
-                    #draw line
+                    # draw line
                     try:
-                        pt1 = (int(all_points[body_part_from_index,0]), int(all_points[body_part_from_index, 1]))
-                        pt2 = (int(all_points[body_part_to_index,0]), int(all_points[body_part_to_index, 1]))
+                        pt1 = (
+                            int(all_points[body_part_from_index, 0]),
+                            int(all_points[body_part_from_index, 1]),
+                        )
+                        pt2 = (int(all_points[body_part_to_index, 0]), int(all_points[body_part_to_index, 1]))
                     except OverflowError:
                         # point could be inf
                         continue
-                    #print(pt1, pt2)
-                    if (0 <= pt1[0] < 99999) and (0 <= pt1[1] < 99999) and ( 0 <= pt2[0] < 99999) and (0 <= pt2[1] < 99999):
+                    # print(pt1, pt2)
+                    if (
+                        (0 <= pt1[0] < 99999)
+                        and (0 <= pt1[1] < 99999)
+                        and (0 <= pt2[0] < 99999)
+                        and (0 <= pt2[1] < 99999)
+                    ):
                         color = LIMB_COLORS[(body_part_from_index, body_part_to_index)]
                         cv2.line(canvas, pt1, pt2, color, thickness=2, lineType=lineType)
         return canvas
@@ -467,7 +496,7 @@ class Frame:
 
     def to_pandas(self):
         ps = [p.to_pandas() for p in self.poses]
-        return pd.concat(ps, keys=range(len(ps)), names=['pose', 'keypoint'])
+        return pd.concat(ps, keys=range(len(ps)), names=["pose", "keypoint"])
 
     def to_numpy(self):
         return np.array([p.to_numpy() for p in self.poses])
@@ -514,7 +543,7 @@ class ProcessedVideo:
         for frame in self.frames:
             frame_dfs.append(frame.to_pandas())
             timestamps.append(frame.timestamp)
-        df = pd.concat(frame_dfs, keys=timestamps, names=['timestamp'])
+        df = pd.concat(frame_dfs, keys=timestamps, names=["timestamp"])
         metadata = {}
         for a in attr.fields(self.__class__):
             value = getattr(self, a.name)
@@ -541,7 +570,18 @@ class ProcessedVideo:
             return None
 
     @classmethod
-    def from_video(cls, file, extractor, read_from_cache=True, write_to_cache=True, cache_dir=None, cache_suffix="__proto-ProcessedVideo-cmu.pb", draw_viz=False, viz_suffix="__proto-ProcessedVideo-cmu_viz.mp4", timestamp_start=datetime.datetime.fromtimestamp(0)):
+    def from_video(
+        cls,
+        file,
+        extractor,
+        read_from_cache=True,
+        write_to_cache=True,
+        cache_dir=None,
+        cache_suffix="__proto-ProcessedVideo-cmu.pb",
+        draw_viz=False,
+        viz_suffix="__proto-ProcessedVideo-cmu_viz.mp4",
+        timestamp_start=datetime.datetime.fromtimestamp(0),
+    ):
         file = os.path.abspath(file)
         if cache_dir is None:
             cache_dir = os.path.abspath(os.path.dirname(file))
@@ -568,10 +608,10 @@ class ProcessedVideo:
         cap = cv2.VideoCapture(file)
         out = None
         o = cls(file=file)
-        #DEBUG_COUNTER = 0
+        # DEBUG_COUNTER = 0
         while True:
-            #DEBUG_COUNTER += 1
-            #if DEBUG_COUNTER >= 3:
+            # DEBUG_COUNTER += 1
+            # if DEBUG_COUNTER >= 3:
             #    break
             time_offset = cap.get(cv2.CAP_PROP_POS_MSEC)
             ret, image = cap.read()
@@ -583,9 +623,8 @@ class ProcessedVideo:
             if draw_viz:
                 viz = frame.draw_on_image(image, copy=True)
                 if out is None:
-                    fourcc = cv2.VideoWriter_fourcc(*'avc1')
-                    out = cv2.VideoWriter(viz_result_file, fourcc, 10,
-                                         (viz.shape[1], viz.shape[0]))
+                    fourcc = cv2.VideoWriter_fourcc(*"avc1")
+                    out = cv2.VideoWriter(viz_result_file, fourcc, 10, (viz.shape[1], viz.shape[0]))
                 out.write(viz)
         cap.release()
         if out is not None:
@@ -601,8 +640,6 @@ class ProcessedVideo:
     def _get_timestamp_from_file(cls, file, file_datetime_format):
         timestamp = datetime.datetime.strptime(os.path.basename(file), file_datetime_format)
         return timestamp
-
-
 
 
 @protonic(suppose_pb2.Vector3f)
@@ -631,13 +668,13 @@ class Keypoint3D:
 
     def to_pandas(self):
         d = {}
-        d['point'] = self.point.to_pandas()
-        d['score'] = self.std.to_pandas()
+        d["point"] = self.point.to_pandas()
+        d["score"] = self.std.to_pandas()
         return pd.concat(d)
 
     def to_numpy(self):
         point = self.point.to_numpy()
-        #a = np.append(point, self.score).astype(np.float32)     # flatten
+        # a = np.append(point, self.score).astype(np.float32)     # flatten
         return point
 
     @property
@@ -648,7 +685,10 @@ class Keypoint3D:
 @protonic(suppose_pb2.Pose3D)
 @attr.s
 class Pose3D:
-    type: str = attr.ib(default=suppose_pb2.Pose3D.Type.keys()[0], validator=attr.validators.in_(suppose_pb2.Pose3D.Type.keys()))
+    type: str = attr.ib(
+        default=suppose_pb2.Pose3D.Type.keys()[0],
+        validator=attr.validators.in_(suppose_pb2.Pose3D.Type.keys()),
+    )
     error: float = attr.ib(default=0)
     keypoints: typing.List[Keypoint3D] = attr.ib(default=attr.Factory(list), metadata={"type": Keypoint3D})
 
@@ -667,7 +707,13 @@ class Pose3D:
         return np.array([kp.is_valid for kp in self.keypoints])
 
     @classmethod
-    def from_2d(cls: Type[T], a: Pose2D, b: Pose2D, camera_calibration1: ImmutableCamera, camera_calibration2: ImmutableCamera) -> T:
+    def from_2d(
+        cls: Type[T],
+        a: Pose2D,
+        b: Pose2D,
+        camera_calibration1: ImmutableCamera,
+        camera_calibration2: ImmutableCamera,
+    ) -> T:
         valid_a = a.valid_keypoints_mask
         valid_b = b.valid_keypoints_mask
         p1_orig = a.points_array
@@ -694,11 +740,11 @@ class Pose3D:
             reprojection_error = max(p1_rmse, p2_rmse)
             # should just reject 3d poses errors > threshold
 
-        keypoints_3d = np.full([len(pts_present)]+list(pts3d.shape[1:]), np.nan)
+        keypoints_3d = np.full([len(pts_present)] + list(pts3d.shape[1:]), np.nan)
         keypoints_3d[pts_present] = pts3d
 
         obj = cls(error=reprojection_error)
-        for x, y ,z in keypoints_3d:
+        for x, y, z in keypoints_3d:
             obj.keypoints.append(Keypoint3D(point=Vector3f(x=x, y=y, z=z)))
         return obj
 
@@ -711,13 +757,13 @@ class Pose3D:
         if self.valid_keypoints_mask[NECK_INDEX]:
             return keypoints[NECK_INDEX]
         if np.all(self.valid_keypoints_mask[SHOULDER_INDICES]):
-            return np.mean(keypoints[SHOULDER_INDICES], axis = 0)
+            return np.mean(keypoints[SHOULDER_INDICES], axis=0)
         if np.any(self.valid_keypoints_mask[HEAD_AND_TORSO_INDICES]):
             head_and_torso_keypoints = np.full(18, False)
             head_and_torso_keypoints[HEAD_AND_TORSO_INDICES] = True
             valid_head_and_torso_keypoints = np.logical_and(
-                head_and_torso_keypoints,
-                self.valid_keypoints_mask)
+                head_and_torso_keypoints, self.valid_keypoints_mask
+            )
             return np.mean(keypoints[valid_head_and_torso_keypoints], axis=0)
         return np.mean(keypoints[self.valid_keypoints_mask], axis=0)
 
@@ -730,7 +776,7 @@ class Frame3D:
 
     def to_pandas(self):
         ps = [p.to_pandas() for p in self.poses]
-        return pd.concat(ps, keys=range(len(ps)), names=['pose', 'keypoint'])
+        return pd.concat(ps, keys=range(len(ps)), names=["pose", "keypoint"])
 
     def to_numpy(self):
         return np.array([p.to_numpy() for p in self.poses])
@@ -742,7 +788,9 @@ class Frame3D:
         return [p.to_numpy() for p in self.poses]
 
     @classmethod
-    def from_frames(cls, frames: typing.Iterable[Frame], cameras: typing.Iterable[ImmutableCamera]) -> 'Frame3D':
+    def from_frames(
+        cls, frames: typing.Iterable[Frame], cameras: typing.Iterable[ImmutableCamera]
+    ) -> "Frame3D":
         graph = Pose3DGraph.reconstruct(frames, cameras)
         return cls.from_graph(graph, timestamp=frames[0].timestamp)
 
@@ -750,7 +798,7 @@ class Frame3D:
     def from_graph(cls, graph, timestamp=0):
         poses = []
         for src, tgt, data in graph.graph.edges(data=True):
-            poses.append(data['pose'])
+            poses.append(data["pose"])
         return cls(poses=poses, timestamp=timestamp)
 
     def project_2d(self, camera: ImmutableCamera) -> Frame:
@@ -760,26 +808,26 @@ class Frame3D:
             frame.poses.append(pose2d)
         return frame
 
-
-
-
     # Plot the poses onto a set of charts, one for each source camera view.
-    #def plot(self, image_size=(1296, 972)):
+    # def plot(self, image_size=(1296, 972)):
     #    for pose in self.poses:
     #        pose.draw()
     #    camera_utilities.format_2d_image_plot(image_size)
     #    plt.show()
 
+
 @protonic(suppose_pb2.ProcessedVideo3D)
 @attr.s
 class ProcessedVideo3D:
-    #camera: str = attr.ib(default="")
-    #width: int = attr.ib(default=0)
-    #height: int = attr.ib(default=0)
-    #file: str = attr.ib(default="")
-    #model: str = attr.ib(default="")
+    # camera: str = attr.ib(default="")
+    # width: int = attr.ib(default=0)
+    # height: int = attr.ib(default=0)
+    # file: str = attr.ib(default="")
+    # model: str = attr.ib(default="")
     room: str = attr.ib(default="")
-    cameras: typing.List[ImmutableCamera] = attr.ib(default=attr.Factory(list), metadata={"type": ImmutableCamera})
+    cameras: typing.List[ImmutableCamera] = attr.ib(
+        default=attr.Factory(list), metadata={"type": ImmutableCamera}
+    )
     frames: typing.List[Frame3D] = attr.ib(default=attr.Factory(list), metadata={"type": Frame3D})
 
     def to_pandas(self):
@@ -788,7 +836,7 @@ class ProcessedVideo3D:
         for frame in self.frames:
             frame_dfs.append(frame.to_pandas())
             timestamps.append(frame.timestamp)
-        df = pd.concat(frame_dfs, keys=timestamps, names=['timestamp'])
+        df = pd.concat(frame_dfs, keys=timestamps, names=["timestamp"])
         metadata = {}
         for a in attr.fields(self.__class__):
             value = getattr(self, a.name)
@@ -823,7 +871,9 @@ class ProcessedVideo3D:
             return None
 
     @classmethod
-    def from_processed_video_2d(cls, pv2ds: typing.List[ProcessedVideo], cameras: typing.Iterable[ImmutableCamera], room="") -> 'ProcessedVideo3D':
+    def from_processed_video_2d(
+        cls, pv2ds: typing.List[ProcessedVideo], cameras: typing.Iterable[ImmutableCamera], room=""
+    ) -> "ProcessedVideo3D":
         start_times = set(pv.start_time for pv in pv2ds)
         if len(start_times) > 1:
             raise ValueError("Passed in ProcessedVideos do not have the same start times")
@@ -843,12 +893,13 @@ class ProcessedVideo3D:
         return pv
 
 
-#@attr.s
-#@protonic(suppose_pb2.NXGraph.Link)
-#class NXGraphLink:
+# @attr.s
+# @protonic(suppose_pb2.NXGraph.Link)
+# class NXGraphLink:
 #    source = attr.ib()
 #    target = attr.ib()
 #    weight = attr.ib()
+
 
 @attr.s(cmp=False)
 class NXGraph:
@@ -888,16 +939,19 @@ class NXGraph:
         # quick hack, should use nx.is_isomorphic
         return self.to_dict() == other.to_dict()
 
+
 @attr.s
 class Pose3DGraph:
     # TODO: move to Frame3D?
-    #num_cameras_source_images = attr.ib()
-    #num_2d_poses_source_images = attr.ib()
-    #source_cameras = attr.ib()
-    #source_images = attr.ib()
+    # num_cameras_source_images = attr.ib()
+    # num_2d_poses_source_images = attr.ib()
+    # source_cameras = attr.ib()
+    # source_images = attr.ib()
     graph: nx.Graph = attr.ib(metadata={"type": NXGraph})
-    cameras:typing.List[ImmutableCamera] = attr.ib(default=attr.Factory(list), metadata={"type": ImmutableCamera})
-    #state: typing.Any = attr.ib(default="")
+    cameras: typing.List[ImmutableCamera] = attr.ib(
+        default=attr.Factory(list), metadata={"type": ImmutableCamera}
+    )
+    # state: typing.Any = attr.ib(default="")
     frames: typing.List[Frame] = attr.ib(default=attr.Factory(list), metadata={"type": Frame})
 
     @classmethod
@@ -906,7 +960,6 @@ class Pose3DGraph:
         graph = cls.get_likely_matches(graph)
         graph = cls.get_best_matches(graph)
         return cls(graph, cameras, frames)
-
 
     @staticmethod
     def graph_from_frames(frames, cameras, max_error=30):
@@ -934,10 +987,10 @@ class Pose3DGraph:
     def get_likely_matches(graph, max_error=30):
         gg = nx.DiGraph()
         for node in graph.nodes:
-            best_edges = {}    # target_camera -> best_edge
+            best_edges = {}  # target_camera -> best_edge
             for edge in graph.edges(node, data=True):
                 _, tgt, data = edge
-                weight = data['pose'].error
+                weight = data["pose"].error
                 # reject when no reprojection found or beyond max error threshold
                 if np.isnan(weight) or weight > max_error:
                     continue
@@ -946,7 +999,7 @@ class Pose3DGraph:
                 if tgt[0] in best_edges:
                     _, _, data2 = best_edges[tgt[0]]
                     # compare against np.nan should return false
-                    if weight < data2['pose'].error:
+                    if weight < data2["pose"].error:
                         best_edges[tgt[0]] = edge
                 else:
                     best_edges[tgt[0]] = edge
@@ -957,10 +1010,10 @@ class Pose3DGraph:
     def get_best_matches(graph, min_edges=1):
         graph_best = nx.Graph()
         best_edges = []
-        #for subgraph in nx.connected_component_subgraphs(graph):
+        # for subgraph in nx.connected_component_subgraphs(graph):
         for subgraph in (graph.subgraph(c).copy() for c in nx.connected_components(graph)):
             if subgraph.number_of_edges() >= min_edges:
-                best_edge = sorted(subgraph.edges(data=True), key=lambda node: node[2]['pose'].error)[0]
+                best_edge = sorted(subgraph.edges(data=True), key=lambda node: node[2]["pose"].error)[0]
                 best_edges.append(best_edge)
         graph_best.add_edges_from(best_edges)
         return graph_best
@@ -984,10 +1037,10 @@ class VideoIndex:
 
     def groupby_iter(self, column):
         for gr, items in sorted(self._df.groupby(column)):
-            yield gr, [VideoFile(*args) for args in items[['file','timestamp','camera']].values]
+            yield gr, [VideoFile(*args) for args in items[["file", "timestamp", "camera"]].values]
 
     @classmethod
-    def create_from_search(cls, glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX):
+    def create_from_search(cls, glob_pattern="*.mp4", timestamp_regex=TIMESTAMP_REGEX):
 
         files = glob.glob(glob_pattern)
         vfs = []
@@ -999,21 +1052,29 @@ class VideoIndex:
             timestamp_str = "{year}-{month}-{day}-{hour}-{minute}-{second}".format(**d)
             # lazy way to get validation
             timestamp = datetime.datetime.strptime(timestamp_str, "%Y-%m-%d-%H-%M-%S")
-            camera = d['camera_id']
+            camera = d["camera_id"]
             vf = VideoFile(file=file, timestamp=timestamp, camera=camera)
             vfs.append(vf)
         o = cls(video_files=vfs)
         return o
 
+
 @attr.s
 class App:
-    def process_2d(self, extractor, glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, draw_viz=True):
-        log = Logger('App')
+    def process_2d(
+        self,
+        extractor,
+        glob_pattern="*.mp4",
+        timestamp_regex=TIMESTAMP_REGEX,
+        display_progress=True,
+        draw_viz=True,
+    ):
+        log = Logger("App")
         vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=timestamp_regex)
         log.info("Files to process: {}".format(vi.video_files))
         length = len(vi.video_files)
         processed_videos = []
-        files_by_timestamp = list(vi.groupby_iter('timestamp'))
+        files_by_timestamp = list(vi.groupby_iter("timestamp"))
         disable_tqdm = not display_progress
         with tqdm(files_by_timestamp, disable=disable_tqdm) as tqdm_files:
             for timestamp, video_files in tqdm_files:
@@ -1024,24 +1085,33 @@ class App:
                     for video_file in tqdm_video_file:
                         display_filename = "{} : {}".format(video_file.camera, video_file.file)
                         tqdm_video_file.set_description(display_filename)
-                        pv = ProcessedVideo.from_video(video_file.file,
-                                                       extractor,
-                                                       read_from_cache=False,
-                                                       timestamp_start=timestamp,
-                                                       draw_viz=draw_viz)
+                        pv = ProcessedVideo.from_video(
+                            video_file.file,
+                            extractor,
+                            read_from_cache=False,
+                            timestamp_start=timestamp,
+                            draw_viz=draw_viz,
+                        )
                         pvs.append(pv)
                 processed_videos.append((timestamp, pvs))
         return processed_videos
 
-    def process_3d(self, cameras: typing.Mapping[str, ImmutableCamera], glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, output_file_pattern="ProcessedVideo3D_{}.pb"):
-        log = Logger('App')
+    def process_3d(
+        self,
+        cameras: typing.Mapping[str, ImmutableCamera],
+        glob_pattern="*.mp4",
+        timestamp_regex=TIMESTAMP_REGEX,
+        display_progress=True,
+        output_file_pattern="ProcessedVideo3D_{}.pb",
+    ):
+        log = Logger("App")
         vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=TIMESTAMP_REGEX)
         log.info("Files to process: {}".format(vi.video_files))
         length = len(vi.video_files)
         processed_videos = []
-        files_by_timestamp = list(vi.groupby_iter('timestamp'))
+        files_by_timestamp = list(vi.groupby_iter("timestamp"))
 
-        DATETIME_FORMAT="%Y-%m-%d-%H-%M-%S"
+        DATETIME_FORMAT = "%Y-%m-%d-%H-%M-%S"
 
         disable_tqdm = not display_progress
         with tqdm(files_by_timestamp, disable=disable_tqdm) as tqdm_files:
@@ -1054,12 +1124,14 @@ class App:
                     for video_file in tqdm_video_file:
                         display_filename = "{} : {}".format(video_file.camera, video_file.file)
                         tqdm_video_file.set_description(display_filename)
-                        pv = ProcessedVideo.from_video(video_file.file,
-                                                       None,
-                                                       read_from_cache=True,
-                                                       write_to_cache=False,
-                                                       timestamp_start=timestamp,
-                                                       draw_viz=False)
+                        pv = ProcessedVideo.from_video(
+                            video_file.file,
+                            None,
+                            read_from_cache=True,
+                            write_to_cache=False,
+                            timestamp_start=timestamp,
+                            draw_viz=False,
+                        )
                         pvs.append(pv)
                         cams.append(cameras[video_file.camera])
                     pv3d = ProcessedVideo3D.from_processed_video_2d(pv2ds=pvs, cameras=cams)
@@ -1070,20 +1142,27 @@ class App:
                     processed_videos.append((timestamp, pv3d))
         return processed_videos
 
-    def draw_3d(self, cameras: typing.Mapping[str, ImmutableCamera], glob_pattern='*.mp4', timestamp_regex=TIMESTAMP_REGEX, display_progress=True, processed_video_file_pattern="ProcessedVideo3D_{}.pb"):
-        log = Logger('App')
+    def draw_3d(
+        self,
+        cameras: typing.Mapping[str, ImmutableCamera],
+        glob_pattern="*.mp4",
+        timestamp_regex=TIMESTAMP_REGEX,
+        display_progress=True,
+        processed_video_file_pattern="ProcessedVideo3D_{}.pb",
+    ):
+        log = Logger("App")
         vi = VideoIndex.create_from_search(glob_pattern=glob_pattern, timestamp_regex=TIMESTAMP_REGEX)
         log.info("Files to process: {}".format(vi.video_files))
         length = len(vi.video_files)
         processed_videos = []
-        files_by_timestamp = list(vi.groupby_iter('timestamp'))
+        files_by_timestamp = list(vi.groupby_iter("timestamp"))
 
-        DATETIME_FORMAT="%Y-%m-%d-%H-%M-%S"
+        DATETIME_FORMAT = "%Y-%m-%d-%H-%M-%S"
 
         disable_tqdm = not display_progress
         with tqdm(files_by_timestamp, disable=disable_tqdm) as tqdm_files:
             for timestamp, video_files in tqdm_files:
-                #pvs = []
+                # pvs = []
                 display_timestamp = timestamp.isoformat()
                 tqdm_files.set_description(display_timestamp)
                 with tqdm(video_files, disable=disable_tqdm) as tqdm_video_file:
@@ -1093,7 +1172,7 @@ class App:
                     log.info("Loading ProcessedVideo3D file {}".format(input_filename))
                     pv3d = ProcessedVideo3D.from_proto_file(input_filename)
 
-                    #cams = []
+                    # cams = []
                     for video_file in tqdm_video_file:
                         display_filename = "{} : {}".format(video_file.camera, video_file.file)
                         tqdm_video_file.set_description(display_filename)
@@ -1121,9 +1200,10 @@ class App:
                             if out is None:
                                 viz_result_file = "{}_3d_poses.mp4".format(video_file.file)
                                 log.info("Writing viz output video file: {}".format(viz_result_file))
-                                fourcc = cv2.VideoWriter_fourcc(*'avc1')
-                                out = cv2.VideoWriter(viz_result_file, fourcc, 10,
-                                                      (viz.shape[1], viz.shape[0]))
+                                fourcc = cv2.VideoWriter_fourcc(*"avc1")
+                                out = cv2.VideoWriter(
+                                    viz_result_file, fourcc, 10, (viz.shape[1], viz.shape[0])
+                                )
                             out.write(viz)
                             index += 1
                         cap.release()
@@ -1131,6 +1211,7 @@ class App:
                             out.release()
 
         return True
+
 
 @attr.s
 class VideoListing:
@@ -1156,7 +1237,9 @@ class VideoListing:
 @attr.s
 class Batch:
     # cameras?
-    listings: typing.Mapping[str, VideoListing] = attr.ib(default=attr.Factory(dict), metadata={"type": VideoListing})
+    listings: typing.Mapping[str, VideoListing] = attr.ib(
+        default=attr.Factory(dict), metadata={"type": VideoListing}
+    )
 
     @classmethod
     def from_search(cls: Type[T], cameras: typing.List[ImmutableCamera], glob_pattern: str) -> T:
@@ -1178,7 +1261,14 @@ class Batch:
         camera_name = parts[-2]
         return camera_name
 
-    def process(self, extractor, read_from_cache=True, write_to_cache=True, cache_dir=None, cache_suffix="__proto-ProcessedVideo-cmu.pb"):
+    def process(
+        self,
+        extractor,
+        read_from_cache=True,
+        write_to_cache=True,
+        cache_dir=None,
+        cache_suffix="__proto-ProcessedVideo-cmu.pb",
+    ):
         """
         Processes this batch of videos.
 
@@ -1199,11 +1289,17 @@ class Batch:
                 if file.endswith(".pb"):
                     pv2d = ProcessedVideo.from_proto_file(file)
                 else:
-                    pv2d = ProcessedVideo.from_video(file, extractor, read_from_cache=read_from_cache, write_to_cache=write_to_cache, cache_dir=cache_dir, cache_suffix=cache_suffix)
+                    pv2d = ProcessedVideo.from_video(
+                        file,
+                        extractor,
+                        read_from_cache=read_from_cache,
+                        write_to_cache=write_to_cache,
+                        cache_dir=cache_dir,
+                        cache_suffix=cache_suffix,
+                    )
                 pv2ds.append(pv2d)
             pv3d = ProcessedVideo3D.from_processed_video_2d(pv2ds=pv2ds, cameras=cameras)
             yield pv3d
-
 
 
 @attr.s
@@ -1213,6 +1309,7 @@ class KeypointModel:
     reference_velocity_transition_error = attr.ib()
     position_observation_error = attr.ib()
 
+
 @attr.s
 class PoseInitializationModel:
     initial_keypoint_position_means = attr.ib()
@@ -1220,11 +1317,13 @@ class PoseInitializationModel:
     initial_keypoint_position_error = attr.ib()
     initial_keypoint_velocity_error = attr.ib()
 
+
 @attr.s
 class Pose3DDistribution:
     keypoint_distributions = attr.ib()
     tag = attr.ib()
     timestamp = attr.ib()
+
 
 @attr.s
 class Pose3DTrack:
@@ -1233,9 +1332,11 @@ class Pose3DTrack:
     track_id = attr.ib()
     num_missing_observations = attr.ib()
 
+
 @attr.s
 class PoseTrackingModel:
     pass
+
 
 @attr.s
 class Pose3DTracks:
