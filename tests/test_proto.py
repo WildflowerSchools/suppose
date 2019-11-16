@@ -1,7 +1,8 @@
 import os
 import warnings
+
 with warnings.catch_warnings():
-    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
     from suppose.pose_extractor import PoseExtractor
 from suppose.proto import *
 from suppose import suppose_pb2
@@ -9,7 +10,8 @@ from suppose.camera import load_calibration
 from math import fabs
 import tempfile
 from hypothesis import given
-#from hypothesis.strategies import from_type, builds, floats, lists, composite, assume
+
+# from hypothesis.strategies import from_type, builds, floats, lists, composite, assume
 import hypothesis.strategies as st
 from google.protobuf import json_format
 import networkx as nx
@@ -24,101 +26,91 @@ def assert_almost_equals(a, b, eps=1e-6):
 
 def make_processed_video(n_frames=3, n_poses=2, n_keypoints=4):
     pv = ProcessedVideo(camera="testcam")
-    for j in range(1, n_frames+1):
+    for j in range(1, n_frames + 1):
         frame = Frame()
         pv.frames.append(frame)
-        frame.timestamp = 123.1*j
-        for i in range(1, n_poses+1):
+        frame.timestamp = 123.1 * j
+        for i in range(1, n_poses + 1):
             pose = Pose2D()
             frame.poses.append(pose)
-            for k in range(1, n_keypoints+1):
+            for k in range(1, n_keypoints + 1):
                 keypoint = Keypoint2D()
                 pose.keypoints.append(keypoint)
-                id = k * i * j + .1
+                id = k * i * j + 0.1
                 keypoint.point.x = id
                 keypoint.point.y = id + 1
                 keypoint.score = id + 2
     return pv
 
+
 def make_processed_video_pb(n_frames=3, n_poses=2, n_keypoints=4):
     pv_pb = suppose_pb2.ProcessedVideo(camera="testcam")
-    for j in range(1, n_frames+1):
+    for j in range(1, n_frames + 1):
         frame = pv_pb.frames.add()
-        frame.timestamp = 123.1*j
-        for i in range(1, n_poses+1):
+        frame.timestamp = 123.1 * j
+        for i in range(1, n_poses + 1):
             pose = frame.poses.add()
-            for k in range(1, n_keypoints+1):
+            for k in range(1, n_keypoints + 1):
                 keypoint = pose.keypoints.add()
-                id = k * i * j + .1
+                id = k * i * j + 0.1
                 keypoint.point.x = id
                 keypoint.point.y = id + 1
                 keypoint.score = id + 2
     return pv_pb
+
 
 def test_pose2d_pb_to_array():
     pose = suppose_pb2.Pose2D()
     for i in range(3):
         kp = pose.keypoints.add()
         kp.point.x = i
-        kp.point.y = i*2
-        kp.score = i*3
-    expected_a = np.array([
-        [0,0,0],
-        [1,2,3],
-        [2,4,6]
-    ], dtype=np.float32)
+        kp.point.y = i * 2
+        kp.score = i * 3
+    expected_a = np.array([[0, 0, 0], [1, 2, 3], [2, 4, 6]], dtype=np.float32)
     a = pose2d_to_array(pose)
     assert np.all(a == expected_a)
+
 
 def test_pose2d_to_numpy():
     pose = suppose_pb2.Pose2D()
     for i in range(3):
         kp = pose.keypoints.add()
         kp.point.x = i
-        kp.point.y = i*2
-        kp.score = i*3
+        kp.point.y = i * 2
+        kp.score = i * 3
     p = Pose2D.from_proto(pose)
-    expected_a = np.array([
-        [0,0,0],
-        [1,2,3],
-        [2,4,6]
-    ], dtype=np.float32)
+    expected_a = np.array([[0, 0, 0], [1, 2, 3], [2, 4, 6]], dtype=np.float32)
     a = pose2d_to_array(pose)
     assert np.all(a == expected_a)
     assert np.all(p.to_numpy() == expected_a)
 
+
 def test_array_to_pose2d_pb():
-    a = np.array([
-        [0,0,0],
-        [1,2,3],
-        [2,4,6]
-    ], dtype=np.float32)
+    a = np.array([[0, 0, 0], [1, 2, 3], [2, 4, 6]], dtype=np.float32)
     expected_pose = suppose_pb2.Pose2D()
     for i in range(3):
         kp = expected_pose.keypoints.add()
         kp.point.x = i
-        kp.point.y = i*2
-        kp.score = i*3
+        kp.point.y = i * 2
+        kp.score = i * 3
     pose = array_to_pose2d(a)
     assert pose == expected_pose
 
+
 def test_numpy_to_pose2d_pb():
-    a = np.array([
-        [0,0,0],
-        [1,2,3],
-        [2,4,6]
-    ], dtype=np.float32)
+    a = np.array([[0, 0, 0], [1, 2, 3], [2, 4, 6]], dtype=np.float32)
     expected_pose = suppose_pb2.Pose2D()
     for i in range(3):
         kp = expected_pose.keypoints.add()
         kp.point.x = i
-        kp.point.y = i*2
-        kp.score = i*3
+        kp.point.y = i * 2
+        kp.score = i * 3
     expected_p = Pose2D.from_proto(expected_pose)
     pose = array_to_pose2d(a)
     assert pose == expected_pose
     p = Pose2D.from_numpy(a)
     assert p == expected_p
+
 
 def test_protonic_from_proto():
     n_frames = 3
@@ -143,6 +135,7 @@ def test_protonic_from_proto():
     pv_pb2 = pv.to_proto()
     assert pv_pb == pv_pb2
 
+
 def test_protonic_to_proto():
     n_frames = 3
     n_poses = 2
@@ -151,6 +144,7 @@ def test_protonic_to_proto():
     pv_pb = make_processed_video_pb(n_frames, n_poses, n_keypoints)
     pv_pb2 = pv.to_proto()
     assert pv_pb2 == pv_pb
+
 
 def test_protonic_to_file_from_file():
     n_frames = 3
@@ -177,7 +171,11 @@ def test_protonic_to_from_dict():
 
 @st.composite
 def make_ProcessedVideo(draw):
-    vector2f_build = st.builds(Vector2f, x=st.floats(max_value=50000, min_value=0, allow_nan=False), y=st.floats(max_value=50000, min_value=0, allow_nan=False))
+    vector2f_build = st.builds(
+        Vector2f,
+        x=st.floats(max_value=50000, min_value=0, allow_nan=False),
+        y=st.floats(max_value=50000, min_value=0, allow_nan=False),
+    )
     keypoint2D_build = st.builds(Keypoint2D, point=vector2f_build, score=st.floats(min_value=0, max_value=1))
     keypoint2Ds_build = st.lists(keypoint2D_build, min_size=1, max_size=5)
     pose_build = st.builds(Pose2D, keypoints=keypoint2Ds_build)
@@ -185,7 +183,14 @@ def make_ProcessedVideo(draw):
     frame_build = st.builds(Frame, timestamp=st.floats(min_value=0, allow_nan=False), poses=poses_build)
     frames_build = st.lists(frame_build, min_size=0, max_size=5)
 
-    pv_build = st.builds(ProcessedVideo, camera=st.text(max_size=100), width=st.integers(max_value=100000, min_value=0), height=st.integers(max_value=100000, min_value=0), file=st.text(max_size=100), model=st.text(max_size=100))
+    pv_build = st.builds(
+        ProcessedVideo,
+        camera=st.text(max_size=100),
+        width=st.integers(max_value=100000, min_value=0),
+        height=st.integers(max_value=100000, min_value=0),
+        file=st.text(max_size=100),
+        model=st.text(max_size=100),
+    )
     pv = draw(pv_build)
     pv.frames = draw(frames_build)
     return pv
@@ -196,6 +201,7 @@ def test_ProcessedVideo_to_from_dict(pv):
     d = pv.to_dict()
     pv2 = ProcessedVideo.from_dict(d)
     assert pv == pv2
+
 
 @given(make_ProcessedVideo())
 def test_ProcessedVideo_to_from_proto_file(pv):
@@ -210,17 +216,19 @@ def test_ProcessedVideo_to_from_proto_file(pv):
         pb2 = pv2.to_proto()
         assert pb == pb2
 
+
 def test_nx():
     def f32(a):
         return np.float32(a).item()
+
     G = nx.Graph()
 
-    G.add_edge('a', 'b', weight=f32(0.6))
-    G.add_edge('a', 'c', weight=f32(0.2))
-    G.add_edge('c', 'd', weight=f32(0.1))
-    G.add_edge('c', 'e', weight=f32(0.7))
-    G.add_edge('c', 'f', weight=f32(0.9))
-    G.add_edge('a', 'd', weight=f32(0.3))
+    G.add_edge("a", "b", weight=f32(0.6))
+    G.add_edge("a", "c", weight=f32(0.2))
+    G.add_edge("c", "d", weight=f32(0.1))
+    G.add_edge("c", "e", weight=f32(0.7))
+    G.add_edge("c", "f", weight=f32(0.9))
+    G.add_edge("a", "d", weight=f32(0.3))
 
     pnxg = NXGraph(graph=G)
     pb = pnxg.to_proto()
@@ -230,7 +238,7 @@ def test_nx():
         node_ids.append(node.id)
 
     node_ids.sort()
-    assert node_ids == ['a', 'b', 'c', 'd', 'e', 'f']
+    assert node_ids == ["a", "b", "c", "d", "e", "f"]
 
     pb_dict = json_format.MessageToDict(pb, including_default_value_fields=True)
     G_dict = nx.json_graph.node_link_data(G)
@@ -261,7 +269,7 @@ def test_pose3dgraph_reconstruct():
     assert len(frame3d.poses) == 4
 
 
-#def test_pose3dgraph_reconstruct_2():
+# def test_pose3dgraph_reconstruct_2():
 #    cwd = os.path.dirname(os.path.realpath(__file__))
 #    camera_names = ["camera01", "camera03", "camera05"]
 #    cameras = []
@@ -276,6 +284,7 @@ def test_pose3dgraph_reconstruct():
 #    frame3d = Frame3D.from_graph(graph)
 #    assert len(frame3d.poses) == 3
 
+
 def test_pose3dgraph_reconstruct_2():
     cwd = os.path.dirname(os.path.realpath(__file__))
     camera_names = ["camera01", "camera03", "camera05"]
@@ -284,7 +293,7 @@ def test_pose3dgraph_reconstruct_2():
     for name in camera_names:
         camera_file = "data/feb14_{}.json".format(name)
         file = os.path.join(cwd, camera_file)
-        #camera = load_calibration(file)
+        # camera = load_calibration(file)
         camera = ImmutableCamera.from_legacy_json_file(file)
         cameras.append(camera)
 
@@ -304,16 +313,21 @@ def test_immutablecamera_from_legacy_dict():
     matrix2 = camera.matrix.to_numpy()
     # numpy form should be cached
     assert id(matrix) == id(matrix2)
-    #try:
+    # try:
     #    camera.matrix.data[0] = 0
-    #except:
+    # except:
     #    pass
-    #else:
+    # else:
     #    raise AssertionError("should not be able to modify immutable matrix")
 
-    expected_matrix = np.array([[937.9434138713071, 0.0, 725.3442435932047],
-                       [0.0, 958.7864143830515, 505.9760884028349],
-                       [0.0, 0.0, 1.0]], dtype=np.float64)
+    expected_matrix = np.array(
+        [
+            [937.9434138713071, 0.0, 725.3442435932047],
+            [0.0, 958.7864143830515, 505.9760884028349],
+            [0.0, 0.0, 1.0],
+        ],
+        dtype=np.float64,
+    )
     diff = np.fabs(matrix - expected_matrix)
     assert np.all(diff == 0)
 
@@ -322,6 +336,7 @@ def test_immutablecamera_from_legacy_dict():
     assert camera == camera2
 
     assert camera.projection.shape == (3, 4)
+
 
 def test_batch_from_search_and_process():
     cwd = os.path.dirname(os.path.realpath(__file__))
@@ -333,8 +348,11 @@ def test_batch_from_search_and_process():
         camera = ImmutableCamera.from_legacy_json_file(file, name)
         cameras.append(camera)
 
-    home = os.environ['HOME']
-    video_glob = os.path.join(home, "wildflower/test_feb14_2019/poses/camera*/video_2019-02-14-19-09-[0-2]0.mp4__proto-ProcessedVideo-cmu.pb")
+    home = os.environ["HOME"]
+    video_glob = os.path.join(
+        home,
+        "wildflower/test_feb14_2019/poses/camera*/video_2019-02-14-19-09-[0-2]0.mp4__proto-ProcessedVideo-cmu.pb",
+    )
     batch = Batch.from_search(cameras, video_glob)
     assert len(batch.listings) > 0
     pv3ds = list(batch.process(NullPoseExtractor, read_from_cache=False, write_to_cache=False))
@@ -352,13 +370,15 @@ def test_batch_from_search_and_process():
     assert len(s1) == len(s2)
     assert s1 == s2
 
+
 class NullPoseExtractor:
     def extract(self, image, timestamp=0):
         frame = Frame(timestamp=timestamp)
         return frame
 
+
 def test_processed_video_from_video():
-    home = os.environ['HOME']
+    home = os.environ["HOME"]
     _file = "wildflower/test_feb14_2019/camera01/video_2019-02-14-18-10-10.mp4"
     file = os.path.join(home, _file)
     pb_file = file + "__proto-ProcessedVideo-cmu.pb"

@@ -8,7 +8,7 @@ import cv2
 from tf_pose.common import CocoPairsRender, CocoColors, CocoPart
 
 
-log = Logger('common')
+log = Logger("common")
 
 
 TIMESTAMP_REGEX = r"^.*\/capucine\/videos\/(?P<camera_id>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})\/(?P<date>(?P<year>\d{4})\/(?P<month>\d{2})\/(?P<day>\d{2}))\/(?P<hour>\d{2})\/(?P<filename>(?P<minute>\d{2})-(?P<second>\d{2}).mp4)$"
@@ -23,16 +23,17 @@ def timing(f):
         finally:
             t1 = time.time()
             dt = t1 - t0
-            argnames = f.__code__.co_varnames[:f.__code__.co_argcount]
+            argnames = f.__code__.co_varnames[: f.__code__.co_argcount]
             fname = f.__name__
-            named_positional_args = list(zip(argnames, args[:len(argnames)]))
-            extra_args = [("args", list(args[len(argnames):]))]
+            named_positional_args = list(zip(argnames, args[: len(argnames)]))
+            extra_args = [("args", list(args[len(argnames) :]))]
             keyword_args = [("kwargs", kwargs)]
             arg_info = named_positional_args + extra_args + keyword_args
-            msg = "{}({}) took {:.3f} seconds".format(fname,
-                                                      ', '.join('{}={}'.format(entry[0], entry[1])[:20] for entry in arg_info),
-                                                      dt)
+            msg = "{}({}) took {:.3f} seconds".format(
+                fname, ", ".join("{}={}".format(entry[0], entry[1])[:20] for entry in arg_info), dt
+            )
             log.info(msg)
+
     return _timing
 
 
@@ -43,7 +44,7 @@ def grouper(iterable, n, fillvalue=None):
     return zip_longest(*args, fillvalue=fillvalue)
 
 
-def stack_images(images, canvas_width=480*2, force_n=None):
+def stack_images(images, canvas_width=480 * 2, force_n=None):
     """
     Stack images into a grid with max_width.
 
@@ -57,36 +58,37 @@ def stack_images(images, canvas_width=480*2, force_n=None):
         n = force_n
 
     columns = int(ceil(sqrt(n)))
-    rows = ceil(n/columns)
+    rows = ceil(n / columns)
 
     height, width, _ = images[0].shape
 
     # assume all images same size for now, easy to adapt to mutiple sizes later and pad if needed
-    scale = canvas_width/(width * columns)
+    scale = canvas_width / (width * columns)
 
     # create canvas
-    canvas_height = int((height*scale)*rows)
+    canvas_height = int((height * scale) * rows)
     canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
 
-    dsize_width = int(width*scale)
-    dsize_height = int(height*scale)
+    dsize_width = int(width * scale)
+    dsize_height = int(height * scale)
     dsize = (dsize_width, dsize_height)
 
     r = 0
     c = 0
     for idx, im in enumerate(images):
         im_resized = cv2.resize(im, dsize)
-        x = c*dsize[0]
-        y = r*dsize[1]
-        canvas[y:y+dsize_height, x:x+dsize_width] = im_resized
+        x = c * dsize[0]
+        y = r * dsize[1]
+        canvas[y : y + dsize_height, x : x + dsize_width] = im_resized
         c += 1
         if c >= columns:
             c = 0
             r += 1
     return canvas
 
+
 def rmse(p1, p2):
-    return np.linalg.norm(p1 - p2)/np.sqrt(p1.shape[0])
+    return np.linalg.norm(p1 - p2) / np.sqrt(p1.shape[0])
 
 
 LIMB_COLORS = dict(zip(CocoPairsRender, CocoColors))
@@ -104,7 +106,6 @@ HEAD_AND_TORSO_INDICES = (
     CocoPart.REye,
     CocoPart.LEye,
     CocoPart.REar,
-    CocoPart.LEar
+    CocoPart.LEar,
 )
-
 
